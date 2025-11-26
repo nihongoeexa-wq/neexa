@@ -1600,24 +1600,29 @@
 
             <p class="l5-main-info">
                 Tantanganmu sudah tersedia, tantanganmu <b><span id="testInfoTitle">[Nama Produk]</span></b>,
-                memiliki kategori <b><span id="testInfoCategoryCount">[X]</span></b> dan <b><span id="testInfoQuestionCount">[Y]</span></b> 
+                memiliki kategori <b><span id="testInfoCategoryCount">...</span></b> dan <b><span id="testInfoQuestionCount">...</span></b> 
                 soal sudah menunggumu!
                 <br>
                 <span class="l5-sub-info">Apakah kamu sudah siap menaklukannya?</span>
             </p>
 
-            <div class="warning-box">
-                <div class="warning-header">⚠️ PERINGATAN ⚠️</div>
+            <div id="warningContainer" class="warning-box">
+                <div class="warning-header"⚠️ PERINGATAN ⚠️</div>
                 <p id="warningText">Harap dikerjakan sendiri tanpa bantuan apa pun untuk menguji kemampuanmu yang sebenarnya.</p>
                 <button id="btnToggleWarning" class="toggle-warning">Sembunyikan</button>
             </div>
 
+            <div style="text-align: center; margin-top: 25px; color: #777; font-size: 13px; line-height: 1.5;">
+                <span style="display: block; font-weight: 600;">Book Reference :</span>
+                <span id="testInfoBookRef" style="display: block; font-style: italic;">Loading...</span>
+            </div>
+
             <button id="btnStartChallenge" class="start-btn">Mulai Tantangan</button>
 
-            <p class="checker">soal diperiksa oleh: <span id="testInfoChecker">[Nama Pengecek]</span></p>
-            <footer>© 2025 [BRAND NAME] System | Powered by Google Apps Script</footer>
+            <p class="checker">soal diperiksa oleh: <span id="testInfoChecker">Team</span></p>
+            <footer>© 2025 NEEXA System</footer>
           </div>
-        </div> 
+        </div>
 
         <p id="message4" class="error" style="text-align: center; margin-top: 15px;"></p>
 
@@ -1838,21 +1843,48 @@
         }).trim(); 
     }
     
-    // Handler Sukses Validasi
+    // Handler Sukses Validasi [UPDATED: Stats + Book Reference]
     function handleValidationSuccess(data) {
         USER_DATA = data.data; 
         
         if(!currentProduct) currentProduct = USER_DATA.product;
         
+        // 1. Tampilkan Data Dasar
         document.getElementById('welcomeUserName').textContent = USER_DATA.nama || 'Peserta';
         document.getElementById('testInfoTitle').textContent = currentProduct || '[Nama Soal]';
         
-        // Data dummy (bisa disesuaikan)
-        document.getElementById('testInfoCategoryCount').textContent = '3';
-        document.getElementById('testInfoQuestionCount').textContent = '50';
-        document.getElementById('testInfoChecker').textContent = 'Team';
+        // 2. [BARU] TAMPILKAN DATA DINAMIS DARI DATABASE
+        // Mengecek apakah Backend mengirimkan paket 'stats'
+        if (USER_DATA.stats) {
+            // Misi 1: Angka Soal & Kategori
+            if(document.getElementById('testInfoCategoryCount'))
+                document.getElementById('testInfoCategoryCount').textContent = USER_DATA.stats.cCount || '0';
+            
+            if(document.getElementById('testInfoQuestionCount'))
+                document.getElementById('testInfoQuestionCount').textContent = USER_DATA.stats.qCount || '0';
+            
+            // Misi 2: Nama Pemeriksa
+            if(document.getElementById('testInfoChecker'))
+                document.getElementById('testInfoChecker').textContent = USER_DATA.stats.pemeriksa || 'Team';
+            
+            // Misi 3: Book Reference (Jika ada)
+            const bookRefEl = document.getElementById('testInfoBookRef');
+            if (bookRefEl) {
+                const refText = USER_DATA.stats.bookRef;
+                // Tampilkan "-" jika kosong atau undefined
+                bookRefEl.textContent = (refText && refText !== '-') ? refText : '-';
+            }
+
+            // Misi 4: Nama Pembuat (Footer)
+            const footerEl = document.querySelector('.intro-card footer');
+            if (footerEl) {
+                const makerName = USER_DATA.stats.pembuat || 'NEEXA System';
+                const year = new Date().getFullYear();
+                footerEl.innerHTML = `© ${year} NEEXA System | Exam Created by ${makerName}`;
+            }
+        }
         
-        // Sembunyikan Layer 4
+        // --- PROSES UI (Tetap Sama) ---
         UI.tokenInputArea.classList.add('hidden'); 
         UI.logoWrapper.classList.add('hidden'); 
         UI.productNameDisplay.classList.add('hidden'); 
