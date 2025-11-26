@@ -1558,6 +1558,90 @@
             padding-bottom: 0 !important;
         }
 
+        /* ======================================================= */
+        /* FASE 7 (NEW): PAKSA TAMPILAN COMPACT DI LAPTOP/PC */
+        /* ======================================================= */
+
+        @media screen and (min-width: 1024px) {
+
+            /* 1. Perkecil Kartu Utama (Intro Card) */
+            .intro-card {
+                width: 100% !important;
+                max-width: 500px !important; /* Dikecilkan drastis dari 720px */
+                padding: 25px 30px !important; /* Spasi dalam dikurangi */
+                margin-top: 5vh !important; /* Turun sedikit dari atas */
+                border-radius: 12px !important;
+            }
+
+            /* 2. Perkecil Box "WELCOME" */
+            .l5-header-box {
+                padding: 8px 15px !important;
+                margin-bottom: 15px !important;
+                max-width: 350px !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            .l5-header-box h3 {
+                font-size: 1.2rem !important; /* Judul dikecilkan (dari 1.8rem) */
+                margin-bottom: 2px !important;
+            }
+            .l5-header-box p {
+                font-size: 0.8rem !important; /* Slogan dikecilkan */
+            }
+
+            /* 3. Perkecil Sapaan & Info Utama */
+            .l5-hello {
+                font-size: 1.1rem !important; /* (Dari 1.5rem) */
+                margin: 15px 0 10px 0 !important;
+            }
+            .l5-main-info {
+                font-size: 0.9rem !important; /* (Dari 1.3rem) */
+                line-height: 1.4 !important;
+                margin-bottom: 15px !important;
+            }
+            .l5-sub-info {
+                font-size: 0.85rem !important;
+                margin-top: 5px !important;
+            }
+
+            /* 4. Perkecil Kotak Peringatan (Warning Box) */
+            .warning-box {
+                padding: 10px 15px !important;
+                margin-top: 15px !important;
+                border-width: 1px !important;
+            }
+            .warning-header {
+                font-size: 0.8rem !important;
+                margin-bottom: 5px !important;
+            }
+            #warningText {
+                font-size: 0.8rem !important;
+                line-height: 1.3 !important;
+                margin-bottom: 5px !important;
+            }
+            .toggle-warning {
+                font-size: 0.7rem !important;
+                padding: 2px 8px !important;
+                margin-top: 5px !important;
+                height: auto !important;
+            }
+
+            /* 5. Perkecil Tombol Mulai & Book Reference */
+            .start-btn {
+                margin-top: 15px !important;
+                padding: 8px 25px !important; /* Tombol jadi tipis */
+                font-size: 0.9rem !important;
+            }
+    
+            /* Teks Book Reference & Checker */
+            #testInfoBookRef, .checker, footer {
+                font-size: 10px !important; /* Sangat kecil */
+            }
+            .intro-card footer {
+                margin-top: 10px !important;
+            }
+        }
+
     </style>
     </head>
 
@@ -2594,6 +2678,25 @@
             UI.layer4Subheader.classList.remove('hidden'); // Pastikan header layer 4 muncul
             UI.tokenInputArea.classList.remove('hidden');  // Pastikan input muncul
             setMessage(UI.msg4, '', false); 
+        }
+    });
+
+    // --- FIX: TOMBOL SEMBUNYIKAN PERINGATAN ---
+    // Kita taruh di dalam DOMContentLoaded agar pasti elemennya sudah ada
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnToggle = document.getElementById('btnToggleWarning');
+        const warningBox = document.getElementById('warningContainer');
+
+        if (btnToggle && warningBox) {
+            // Hapus listener lama (jika ada) dengan mengkloning
+            const newBtn = btnToggle.cloneNode(true);
+            btnToggle.parentNode.replaceChild(newBtn, btnToggle);
+
+            // Pasang listener baru yang bersih
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault(); // Mencegah perilaku default
+                warningBox.style.display = 'none'; // Sembunyikan kotak
+            });
         }
     });
 </script>
