@@ -1,3 +1,6 @@
+Quiz.html
+FINAL SCRIPT NEEXA
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -1559,86 +1562,29 @@
         }
 
         /* ======================================================= */
-        /* FASE 7 (NEW): PAKSA TAMPILAN COMPACT DI LAPTOP/PC */
+        /* FASE 17: FIX TUMPUKAN LAYOUT DI HP (MOBILE OVERLAP FIX) */
         /* ======================================================= */
 
-        @media screen and (min-width: 1024px) {
-
-            /* 1. Perkecil Kartu Utama (Intro Card) */
-            .intro-card {
-                width: 100% !important;
-                max-width: 500px !important; /* Dikecilkan drastis dari 720px */
-                padding: 25px 30px !important; /* Spasi dalam dikurangi */
-                margin-top: 5vh !important; /* Turun sedikit dari atas */
-                border-radius: 12px !important;
-            }
-
-            /* 2. Perkecil Box "WELCOME" */
-            .l5-header-box {
-                padding: 8px 15px !important;
-                margin-bottom: 15px !important;
-                max-width: 350px !important;
-                margin-left: auto !important;
-                margin-right: auto !important;
-            }
-            .l5-header-box h3 {
-                font-size: 1.2rem !important; /* Judul dikecilkan (dari 1.8rem) */
-                margin-bottom: 2px !important;
-            }
-            .l5-header-box p {
-                font-size: 0.8rem !important; /* Slogan dikecilkan */
-            }
-
-            /* 3. Perkecil Sapaan & Info Utama */
-            .l5-hello {
-                font-size: 1.1rem !important; /* (Dari 1.5rem) */
-                margin: 15px 0 10px 0 !important;
-            }
-            .l5-main-info {
-                font-size: 0.9rem !important; /* (Dari 1.3rem) */
-                line-height: 1.4 !important;
-                margin-bottom: 15px !important;
-            }
-            .l5-sub-info {
-                font-size: 0.85rem !important;
-                margin-top: 5px !important;
-            }
-
-            /* 4. Perkecil Kotak Peringatan (Warning Box) */
-            .warning-box {
-                padding: 10px 15px !important;
-                margin-top: 15px !important;
-                border-width: 1px !important;
-            }
-            .warning-header {
-                font-size: 0.8rem !important;
-                margin-bottom: 5px !important;
-            }
-            #warningText {
-                font-size: 0.8rem !important;
-                line-height: 1.3 !important;
-                margin-bottom: 5px !important;
-            }
-            .toggle-warning {
-                font-size: 0.7rem !important;
-                padding: 2px 8px !important;
-                margin-top: 5px !important;
-                height: auto !important;
-            }
-
-            /* 5. Perkecil Tombol Mulai & Book Reference */
-            .start-btn {
-                margin-top: 15px !important;
-                padding: 8px 25px !important; /* Tombol jadi tipis */
-                font-size: 0.9rem !important;
-            }
+        @media only screen and (max-width: 800px) {
     
-            /* Teks Book Reference & Checker */
-            #testInfoBookRef, .checker, footer {
-                font-size: 10px !important; /* Sangat kecil */
+            /* 1. Paksa elemen sembunyi total jika memiliki class 'hidden' */
+            /* Ini akan mematikan paksaan 'display: block' dari Fase 14 */
+            #layer-review-page.hidden, 
+            #accessContent.hidden,
+            .hidden {
+                display: none !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
             }
-            .intro-card footer {
-                margin-top: 10px !important;
+
+            /* 2. Pastikan Mode Review di HP mengambil alih layar sepenuhnya */
+            #accessContent:not(.hidden) {
+                display: block !important;
+                height: auto !important;
+                padding-bottom: 60px !important; /* Ruang untuk scroll bawah */
             }
         }
 
@@ -1684,29 +1630,24 @@
 
             <p class="l5-main-info">
                 Tantanganmu sudah tersedia, tantanganmu <b><span id="testInfoTitle">[Nama Produk]</span></b>,
-                memiliki kategori <b><span id="testInfoCategoryCount">...</span></b> dan <b><span id="testInfoQuestionCount">...</span></b> 
+                memiliki kategori <b><span id="testInfoCategoryCount">[X]</span></b> dan <b><span id="testInfoQuestionCount">[Y]</span></b> 
                 soal sudah menunggumu!
                 <br>
                 <span class="l5-sub-info">Apakah kamu sudah siap menaklukannya?</span>
             </p>
 
-            <div id="warningContainer" class="warning-box">
+            <div class="warning-box">
                 <div class="warning-header">⚠️ PERINGATAN ⚠️</div>
                 <p id="warningText">Harap dikerjakan sendiri tanpa bantuan apa pun untuk menguji kemampuanmu yang sebenarnya.</p>
                 <button id="btnToggleWarning" class="toggle-warning">Sembunyikan</button>
             </div>
 
-            <div style="text-align: center; margin-top: 25px; margin-bottom: 10px; color: #777; font-size: 13px; line-height: 1.5;">
-                <span style="display: block; font-weight: 600;">Book Reference :</span>
-                <span id="testInfoBookRef" style="display: block; font-style: italic;">Loading...</span>
-            </div>
-
             <button id="btnStartChallenge" class="start-btn">Mulai Tantangan</button>
 
-            <p class="checker">soal diperiksa oleh: <span id="testInfoChecker">Team</span></p>
-            <footer>© 2025 NEEXA System</footer>
+            <p class="checker">soal diperiksa oleh: <span id="testInfoChecker">[Nama Pengecek]</span></p>
+            <footer>© 2025 [BRAND NAME] System | Powered by Google Apps Script</footer>
           </div>
-        </div>
+        </div> 
 
         <p id="message4" class="error" style="text-align: center; margin-top: 15px;"></p>
 
@@ -1927,48 +1868,21 @@
         }).trim(); 
     }
     
-    // Handler Sukses Validasi [UPDATED: Stats + Book Reference]
+    // Handler Sukses Validasi
     function handleValidationSuccess(data) {
         USER_DATA = data.data; 
         
         if(!currentProduct) currentProduct = USER_DATA.product;
         
-        // 1. Tampilkan Data Dasar
         document.getElementById('welcomeUserName').textContent = USER_DATA.nama || 'Peserta';
         document.getElementById('testInfoTitle').textContent = currentProduct || '[Nama Soal]';
         
-        // 2. [BARU] TAMPILKAN DATA DINAMIS DARI DATABASE
-        // Mengecek apakah Backend mengirimkan paket 'stats'
-        if (USER_DATA.stats) {
-            // Misi 1: Angka Soal & Kategori
-            if(document.getElementById('testInfoCategoryCount'))
-                document.getElementById('testInfoCategoryCount').textContent = USER_DATA.stats.cCount || '0';
-            
-            if(document.getElementById('testInfoQuestionCount'))
-                document.getElementById('testInfoQuestionCount').textContent = USER_DATA.stats.qCount || '0';
-            
-            // Misi 2: Nama Pemeriksa
-            if(document.getElementById('testInfoChecker'))
-                document.getElementById('testInfoChecker').textContent = USER_DATA.stats.pemeriksa || 'Team';
-            
-            // Misi 3: Book Reference (Jika ada)
-            const bookRefEl = document.getElementById('testInfoBookRef');
-            if (bookRefEl) {
-                const refText = USER_DATA.stats.bookRef;
-                // Tampilkan "-" jika kosong atau undefined
-                bookRefEl.textContent = (refText && refText !== '-') ? refText : '-';
-            }
-
-            // Misi 4: Nama Pembuat (Footer)
-            const footerEl = document.querySelector('.intro-card footer');
-            if (footerEl) {
-                const makerName = USER_DATA.stats.pembuat || 'NEEXA System';
-                const year = new Date().getFullYear();
-                footerEl.innerHTML = `© ${year} NEEXA System | Exam Created by ${makerName}`;
-            }
-        }
+        // Data dummy (bisa disesuaikan)
+        document.getElementById('testInfoCategoryCount').textContent = '3';
+        document.getElementById('testInfoQuestionCount').textContent = '50';
+        document.getElementById('testInfoChecker').textContent = 'Team';
         
-        // --- PROSES UI (Tetap Sama) ---
+        // Sembunyikan Layer 4
         UI.tokenInputArea.classList.add('hidden'); 
         UI.logoWrapper.classList.add('hidden'); 
         UI.productNameDisplay.classList.add('hidden'); 
@@ -2678,25 +2592,6 @@
             UI.layer4Subheader.classList.remove('hidden'); // Pastikan header layer 4 muncul
             UI.tokenInputArea.classList.remove('hidden');  // Pastikan input muncul
             setMessage(UI.msg4, '', false); 
-        }
-    });
-
-    // --- FIX: TOMBOL SEMBUNYIKAN PERINGATAN ---
-    // Kita taruh di dalam DOMContentLoaded agar pasti elemennya sudah ada
-    document.addEventListener('DOMContentLoaded', () => {
-        const btnToggle = document.getElementById('btnToggleWarning');
-        const warningBox = document.getElementById('warningContainer');
-
-        if (btnToggle && warningBox) {
-            // Hapus listener lama (jika ada) dengan mengkloning
-            const newBtn = btnToggle.cloneNode(true);
-            btnToggle.parentNode.replaceChild(newBtn, btnToggle);
-
-            // Pasang listener baru yang bersih
-            newBtn.addEventListener('click', function(e) {
-                e.preventDefault(); // Mencegah perilaku default
-                warningBox.style.display = 'none'; // Sembunyikan kotak
-            });
         }
     });
 </script>
