@@ -1069,23 +1069,23 @@
             margin-right: 12px;
         }
 
-        /* Jawaban Benar (Hijau) */
+        /* Jawaban Benar (Hijau) - Ditebalkan dengan !important */
         .option-label-review.review-correct {
-            background: #e6f7ec;
-            border-color: #2ECC71;
-            color: #27ae60;
-            font-weight: 600;
-            opacity: 1.0;
+            background: #e6f7ec !important;
+            border-color: #2ECC71 !important;
+            color: #27ae60 !important;
+            font-weight: 600 !important;
+            opacity: 1.0 !important;
         }
 
-        /* Jawaban Pengguna yang Salah (Merah) */
+        /* Jawaban Pengguna yang Salah (Merah) - Ditebalkan dengan !important */
         .option-label-review.review-incorrect {
-            background: #fdeeee;
-            border-color: #D9534F;
-            color: #D9534F;
-            font-weight: 600;
-            opacity: 1.0;
-            text-decoration: line-through;
+            background: #fdeeee !important;
+            border-color: #D9534F !important;
+            color: #D9534F !important;
+            font-weight: 600 !important;
+            opacity: 1.0 !important;
+            text-decoration: line-through !important; /* Coret jawaban yang salah */
         }
       
         /* ======================================================= */
@@ -2522,7 +2522,7 @@
     }
 
     /**
-     * 4. FUNGSI TAMPILAN: Masuk Mode Review
+     * 4. FUNGSI TAMPILAN: Masuk Mode Review (Versi Robust)
      */
     function showReview(category) {
         const reviewDetails = reviewDataStore[category];
@@ -2533,22 +2533,24 @@
             return;
         }
 
+        // --- SETUP TAMPILAN (SAMA SEPERTI SEBELUMNYA) ---
         UI.layerReviewPage.classList.add('hidden');
-
         UI.accessContent.classList.remove('hidden');
+        
+        // Tambahkan class khusus di parent container untuk styling CSS Review
+        const layoutContainer = document.querySelector('.quiz-layout-container');
+        if (layoutContainer) layoutContainer.classList.add('in-review-mode');
+
         UI.l6Header.classList.remove('hidden');
         UI.l6Main.classList.remove('hidden');
         UI.l6Footer.classList.remove('hidden');
 
         UI.l6ProductName.textContent = `${currentProduct} - REVIEW MODE`;
         UI.l6UserInfo.textContent = `${USER_DATA.nama || 'Peserta'} - ${category}`;
-        UI.l6ProgressBar.parentElement.classList.add('hidden'); 
-        UI.l6NavPanel.classList.add('hidden'); 
-
-        UI.l6Main.style.gridTemplateColumns = '1fr'; 
-        UI.l6QuestionContent.style.flexGrow = '0'; 
-
-        UI.l6QuestionNavButtons.classList.add('hidden'); 
+        
+        if(UI.l6ProgressBar) UI.l6ProgressBar.parentElement.classList.add('hidden'); 
+        if(UI.l6NavPanel) UI.l6NavPanel.classList.add('hidden'); 
+        if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden'); 
 
         UI.l6Footer.innerHTML = `<button class="score-reload-btn" onclick="returnToScorePage()">Kembali ke Halaman Skor</button>`;
 
@@ -2558,9 +2560,12 @@
             const detail = reviewDetails[q.id];
             if (!detail) return;
 
-            const userAnswer = detail.answer || null; 
-            const correctAnswer = detail.correct;
+            // --- [PERBAIKAN VITAL DI SINI] ---
+            // Kita bersihkan datanya: Hilangkan spasi & jadikan Huruf Besar semua
+            const userAnswer = detail.answer ? String(detail.answer).trim().toUpperCase() : null; 
+            const correctAnswer = String(detail.correct).trim().toUpperCase();
 
+            // 1. Media
             let mediaHtml = '';
             if (q.mediaUrl) {
                 if (category === 'listening') { 
@@ -2570,6 +2575,7 @@
                 }
             }
 
+            // 2. Teks
             let passageHtml = '';
             if (q.passageText && q.passageText.trim() !== "") {
                 passageHtml = `<div class="passage-box">${convertFuriganaToRuby(q.passageText)}</div>`;
@@ -2577,23 +2583,35 @@
             
             let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
             let processedText = convertFuriganaToRuby(q.questionText);
+            
             if (processedText.includes(':')) {
                 const parts = processedText.split(':', 2);
                 processedText = `${parts[0]}:<br><span class="japanese-text-line">${parts[1]}</span>`;
             }
             let questionTextHtml = `<h3 class="question-title">${questionNumberStyled} <div class="question-text-wrapper">${processedText}</div></h3>`;
 
+            // 3. Opsi Jawaban (DENGAN LOGIKA WARNA YANG DIPERBAIKI)
             let optionsHtml = '<div class="options-container">';
             OPTIONS_KEYS.forEach(key => {
                 const optionText = q.options[key];
-                if (optionText && optionText.trim() !== "") {
-                    const isChecked = (userAnswer === key) ? 'checked' : '';
-                    let labelClass = 'option-label-review';
+                // Pastikan key pembanding juga huruf besar
+                const currentKey = key.toUpperCase(); 
 
-                    if (key === correctAnswer) {
-                        labelClass += ' review-correct'; 
-                    } else if (key === userAnswer && key !== correctAnswer) {
-                        labelClass += ' review-incorrect'; 
+                if (optionText && optionText.trim() !== "") {
+                    let labelClass = 'option-label-review';
+                    let isChecked = '';
+
+                    // LOGIKA PRIORITAS:
+                    if (currentKey === correctAnswer) {
+                        // KUNCI JAWABAN (HIJAU)
+                        labelClass += ' review-correct';
+                        if (userAnswer === currentKey) isChecked = 'checked'; // Jika benar, centang
+                        
+                    } else if (currentKey === userAnswer) {
+                        // JAWABAN USER SALAH (MERAH)
+                        // Logika ini HANYA jalan jika userAnswer != correctAnswer
+                        labelClass += ' review-incorrect';
+                        isChecked = 'checked'; // Centang jawaban salah user
                     }
 
                     const displayValue = optionText.startsWith('http') 
