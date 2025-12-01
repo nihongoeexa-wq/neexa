@@ -2237,6 +2237,7 @@
         });
     }
 
+
     function renderCurrentView() {
         try {
             const index = quizState.currentQuestionIndex;
@@ -2266,28 +2267,38 @@
                 questionTextHtml = `<div class="passage-box">${passageContent}</div>` + questionTextHtml;
             }
 
+            // --- REVISI BAGIAN RENDER OPSI JAWABAN ---
             let optionsHtml = '<div class="options-container">';
+            
             const optionsArray = OPTIONS_KEYS
                 .map(key => ({ key: key, text: q.options[key] }))
-                .filter(opt => opt.text && opt.text.trim() !== ""); 
+                .filter(opt => opt.text && opt.text.trim() !== "");
 
             optionsArray.forEach((option) => { 
                 const displayValue = option.text.startsWith('http') 
                     ? `<img src="${option.text}" alt="Pilihan ${option.key}" style="max-height: 80px;">` 
                     : convertFuriganaToRuby(option.text);
 
+                // Cek apakah jawaban ini yang tersimpan di memori?
                 const isChecked = (qState.answer === option.key) ? 'checked' : '';
 
+                // KITA PASANG FUNGSI SIMPAN LANGSUNG DI SINI (ONCLICK)
                 optionsHtml += `
                     <label class="option-label">
-                        <input type="radio" name="q_${q.id}" value="${option.key}" ${isChecked}>
+                        <input type="radio" 
+                               name="q_${q.id}" 
+                               value="${option.key}" 
+                               ${isChecked}
+                               onclick="saveAnswer('${q.id}', '${option.key}')">
                         <span>${option.key}. ${displayValue}</span>
                     </label>
-                  `;
+                `;
             });
             optionsHtml += '</div>';
+            // ---------------------------------------------
 
             UI.l6QuestionContent.innerHTML = questionTextHtml + mediaHtml + optionsHtml;
+            
             
             UI.l6BtnBack.disabled = (index === 0); 
 
@@ -2327,14 +2338,22 @@
     }
 
     function saveAnswer(questionId, answerValue) {
-        const state = quizState.questionStates[questionId];
-        if (state) {
-            state.status = 'answered'; 
-            state.answer = answerValue; 
-            renderNavPanel();  
-            updateHeader();    
+        console.log(`Menyimpan Jawaban: ID ${questionId} = ${answerValue}`); // Debugging
+        
+        // Pastikan state untuk soal ini ada
+        if (!quizState.questionStates[questionId]) {
+            quizState.questionStates[questionId] = {};
         }
+
+        // Simpan ke Memori
+        quizState.questionStates[questionId].status = 'answered';
+        quizState.questionStates[questionId].answer = answerValue;
+
+        // Update Tampilan Navigasi (Warna tombol nomor di kiri)
+        renderNavPanel();
+        updateHeader();
     }
+
 
     // ====================================================================
     // FASE 5: SUBMIT JAWABAN & HALAMAN REVIEW (FIXED & LENGKAP)
