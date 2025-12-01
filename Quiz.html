@@ -2522,36 +2522,34 @@
     }
 
     /**
-     * 4. FUNGSI TAMPILAN: Masuk Mode Review (Versi Robust)
+     * FUNGSI DIAGNOSTIK: Masuk Mode Review dengan LOGGING LENGKAP
      */
     function showReview(category) {
+        console.log("--- MEMULAI MODE REVIEW DIAGNOSTIK ---"); // LOG
+        
         const reviewDetails = reviewDataStore[category];
         const questions = allQuestionsStore[category];
 
         if (!reviewDetails || !questions) {
-            alert('Data review untuk kategori ini tidak ditemukan.');
+            alert('Data review tidak ditemukan.');
             return;
         }
 
-        // --- SETUP TAMPILAN (SAMA SEPERTI SEBELUMNYA) ---
+        // Setup UI (Sama seperti sebelumnya)
         UI.layerReviewPage.classList.add('hidden');
         UI.accessContent.classList.remove('hidden');
-        
-        // Tambahkan class khusus di parent container untuk styling CSS Review
         const layoutContainer = document.querySelector('.quiz-layout-container');
         if (layoutContainer) layoutContainer.classList.add('in-review-mode');
-
+        
         UI.l6Header.classList.remove('hidden');
         UI.l6Main.classList.remove('hidden');
         UI.l6Footer.classList.remove('hidden');
-
         UI.l6ProductName.textContent = `${currentProduct} - REVIEW MODE`;
         UI.l6UserInfo.textContent = `${USER_DATA.nama || 'Peserta'} - ${category}`;
         
         if(UI.l6ProgressBar) UI.l6ProgressBar.parentElement.classList.add('hidden'); 
         if(UI.l6NavPanel) UI.l6NavPanel.classList.add('hidden'); 
         if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden'); 
-
         UI.l6Footer.innerHTML = `<button class="score-reload-btn" onclick="returnToScorePage()">Kembali ke Halaman Skor</button>`;
 
         let allQuestionsHtml = '';
@@ -2560,12 +2558,30 @@
             const detail = reviewDetails[q.id];
             if (!detail) return;
 
-            // --- [PERBAIKAN VITAL DI SINI] ---
-            // Kita bersihkan datanya: Hilangkan spasi & jadikan Huruf Besar semua
-            const userAnswer = detail.answer ? String(detail.answer).trim().toUpperCase() : null; 
-            const correctAnswer = String(detail.correct).trim().toUpperCase();
+            // --- DATA MENTAH ---
+            const rawUser = detail.answer;
+            const rawCorrect = detail.correct;
 
-            // 1. Media
+            // --- NORMALISASI ---
+            const userAnswer = rawUser ? String(rawUser).trim().toUpperCase() : null; 
+            const correctAnswer = String(rawCorrect).trim().toUpperCase();
+
+            // --- LOGGING (MATA-MATA) ---
+            // Ini akan memberitahu kita kenapa warnanya tidak keluar
+            console.log(`Soal No ${index+1} (ID: ${q.id}):`);
+            console.log(`   - Jawaban User (Mentah): ${rawUser}`);
+            console.log(`   - Jawaban User (Final):  ${userAnswer}`);
+            console.log(`   - Kunci Jawaban:         ${correctAnswer}`);
+            
+            if (userAnswer === null) {
+                console.warn(`   ⚠️ PERINGATAN: User dianggap TIDAK MENJAWAB (Null). Warna Merah tidak akan muncul.`);
+            } else if (userAnswer !== correctAnswer) {
+                console.log(`   ✅ STATUS: SALAH. Seharusnya muncul MERAH.`);
+            } else {
+                console.log(`   ✅ STATUS: BENAR. Seharusnya muncul HIJAU.`);
+            }
+
+            // ... (Kode Render Media & Teks sama seperti sebelumnya) ...
             let mediaHtml = '';
             if (q.mediaUrl) {
                 if (category === 'listening') { 
@@ -2575,7 +2591,6 @@
                 }
             }
 
-            // 2. Teks
             let passageHtml = '';
             if (q.passageText && q.passageText.trim() !== "") {
                 passageHtml = `<div class="passage-box">${convertFuriganaToRuby(q.passageText)}</div>`;
@@ -2583,35 +2598,29 @@
             
             let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
             let processedText = convertFuriganaToRuby(q.questionText);
-            
             if (processedText.includes(':')) {
                 const parts = processedText.split(':', 2);
                 processedText = `${parts[0]}:<br><span class="japanese-text-line">${parts[1]}</span>`;
             }
             let questionTextHtml = `<h3 class="question-title">${questionNumberStyled} <div class="question-text-wrapper">${processedText}</div></h3>`;
 
-            // 3. Opsi Jawaban (DENGAN LOGIKA WARNA YANG DIPERBAIKI)
+            // --- RENDER OPSI ---
             let optionsHtml = '<div class="options-container">';
             OPTIONS_KEYS.forEach(key => {
                 const optionText = q.options[key];
-                // Pastikan key pembanding juga huruf besar
                 const currentKey = key.toUpperCase(); 
 
                 if (optionText && optionText.trim() !== "") {
                     let labelClass = 'option-label-review';
                     let isChecked = '';
 
-                    // LOGIKA PRIORITAS:
+                    // LOGIKA PEWARNAAN
                     if (currentKey === correctAnswer) {
-                        // KUNCI JAWABAN (HIJAU)
-                        labelClass += ' review-correct';
-                        if (userAnswer === currentKey) isChecked = 'checked'; // Jika benar, centang
-                        
+                        labelClass += ' review-correct'; // Kunci (Hijau)
+                        if (userAnswer === currentKey) isChecked = 'checked';
                     } else if (currentKey === userAnswer) {
-                        // JAWABAN USER SALAH (MERAH)
-                        // Logika ini HANYA jalan jika userAnswer != correctAnswer
-                        labelClass += ' review-incorrect';
-                        isChecked = 'checked'; // Centang jawaban salah user
+                        labelClass += ' review-incorrect'; // User Salah (Merah)
+                        isChecked = 'checked';
                     }
 
                     const displayValue = optionText.startsWith('http') 
