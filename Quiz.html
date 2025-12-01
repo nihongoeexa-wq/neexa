@@ -2372,12 +2372,12 @@
 
     /**
      * 1. FUNGSI UTAMA: Mengirim data ke API Netlify/GAS
-     * (Fungsi ini yang dipanggil oleh tombol "Ya" di Popup Konfirmasi)
+     * [REVISI FINAL: Mencegah Data Hilang Saat Submit]
      */
     function submitCategory() {
-        console.log(`Mengirim jawaban: ${quizState.currentCategory}`);
+        console.log(`🚀 Mempersiapkan pengiriman untuk kategori: ${quizState.currentCategory}`);
         
-        // UI Loading: Beri tahu user sistem sedang bekerja
+        // UI Loading
         if(UI.l6QuestionContent) {
             UI.l6QuestionContent.innerHTML = `
                 <div style="text-align: center; padding: 30px;">
@@ -2386,27 +2386,35 @@
                 </div>`;
         }
         
-        // Sembunyikan tombol agar tidak diklik ganda
+        // Sembunyikan tombol
         if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden'); 
         if(UI.l6Footer) UI.l6Footer.classList.add('hidden');
 
-        // Siapkan Data
+        // --- DEBUGGING DATA SEBELUM KIRIM ---
+        // Kita kunci data saat ini agar tidak berubah meski nanti di-reset
+        const answersCopy = JSON.parse(JSON.stringify(quizState.questionStates));
+        console.log("Data Jawaban (Snapshot):", answersCopy);
+
+        // Siapkan Payload
         const payload = {
             apiKey: API_KEY,
             email: USER_DATA.email || 'guest',
             phone: USER_DATA.phone || '000',
             product: currentProduct,
             category: quizState.currentCategory,
-            answers: quizState.questionStates 
+            answers: answersCopy // Kirim salinan yang aman
         };
 
-        // Panggil API (Jembatan)
+        // Panggil API
         apiCall('submitCategoryAnswers', payload).then(response => {
             if (response.success) {
-                // Jika sukses, oper ke fungsi Handler di bawah
+                // RESET STATE SETELAH SUKSES (Agar kategori berikutnya bersih)
+                // Kita reset HANYA SETELAH server bilang "Oke diterima"
+                quizState.questionStates = {}; 
+                
                 handleCategorySubmitSuccess(response.data);
             } else {
-                // Jika gagal, kembalikan tampilan agar bisa coba lagi
+                // Jika gagal, kembalikan tampilan
                 if(UI.l6QuestionContent) UI.l6QuestionContent.innerHTML = `<p class="error" style="text-align:center;">Gagal submit: ${response.message}</p>`;
                 if(UI.l6Footer) UI.l6Footer.classList.remove('hidden'); 
             }
