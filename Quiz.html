@@ -2337,22 +2337,33 @@
         renderNavPanel();    
     }
 
-    function saveAnswer(questionId, answerValue) {
-        console.log(`Menyimpan Jawaban: ID ${questionId} = ${answerValue}`); // Debugging
+    // Fungsi Simpan Jawaban (Versi Stabil onchange & Global)
+    window.saveAnswer = function(questionId, answerValue) {
+        // Debugging: Cek console, harus muncul setiap kali pilih jawaban
+        console.log(`✅ MENYIMPAN: ID ${questionId} memilih ${answerValue}`); 
         
-        // Pastikan state untuk soal ini ada
+        // 1. Proteksi & Inisialisasi (Agresif)
+        // Jika kotak penyimpanan belum ada, buat sekarang juga!
         if (!quizState.questionStates[questionId]) {
             quizState.questionStates[questionId] = {};
         }
 
-        // Simpan ke Memori
+        // 2. Simpan ke Memori
         quizState.questionStates[questionId].status = 'answered';
         quizState.questionStates[questionId].answer = answerValue;
 
-        // Update Tampilan Navigasi (Warna tombol nomor di kiri)
-        renderNavPanel();
+        // 3. Update UI Navigasi (Tombol nomor di kiri jadi hijau)
+        // Kita cari tombol nomor yang sesuai dengan ID soal ini
+        const qIndex = quizState.questions.findIndex(q => q.id == questionId);
+        const navItem = document.querySelector(`#l6-question-list-nav li[data-index="${qIndex}"]`);
+        
+        if (navItem) {
+            navItem.className = 'nav-q-answered';
+        }
+        
+        // 4. Update Progress Bar
         updateHeader();
-    }
+    };
 
 
     // ====================================================================
