@@ -412,12 +412,12 @@
     <div class="container">
         
         <div class="header-section hidden-on-layer2">
-            <h1 class="japanese-text">ようこそ、[BRAND NAME]へ！</h1>
-            <p class="subtitle">Brandname Prototype Brandname Prototype</p>
+            <h1 class="japanese-text">ようこそ、NEEXAへ！</h1>
+            <p class="subtitle">Nihongo Electronic Exam Auditorium</p>
             
             <div class="nexa-text-logo" id="nexaLogo"> 
-                <h2>[BRAND NAME]</h2>
-                <p class="slogan">Slogan, Text Prototype</p>
+                <h2>NEEXA</h2>
+                <p class="slogan">Secure, your Future</p>
             </div>
             
         </div>
@@ -479,11 +479,11 @@
                     border-radius: 10px;
                     line-height: 1.5;
                 ">
-                    <p><strong>Perhatian:</strong> Ketentuan berikut berlaku untuk seluruh pengguna sistem akses soal [BRAND NAME]. Mohon dibaca dengan saksama sebelum melanjutkan.</p>
+                    <p><strong>Perhatian:</strong> Ketentuan berikut berlaku untuk seluruh pengguna sistem akses soal NEEXA. Mohon dibaca dengan saksama sebelum melanjutkan.</p>
                     <p><strong>Masa Berlaku Token:</strong> Setiap token memiliki masa berlaku tertentu dan tidak dapat diperpanjang setelah kedaluwarsa.</p>
-                    <p><strong>Batas Penggunaan Perangkat:</strong> Token hanya dapat digunakan pada maksimal dua perangkat. Mengganti browser atau aplikasi akan dihitung sebagai perangkat berbeda. Token yang diakses lebih dari dua perangkat akan terblokir otomatis, dan pihak [BRAND NAME] tidak bertanggung jawab.</p>
-                    <p><strong>Larangan dan Hak Cipta:</strong> Dilarang keras menyebarkan, menduplikasi, atau menggunakan materi soal [BRAND NAME] untuk tujuan komersial tanpa izin tertulis dari pihak [BRAND NAME]. Pelanggaran terhadap ketentuan ini dapat dikenakan sanksi sesuai Undang-Undang Hak Cipta yang berlaku di Indonesia.</p>
-                    <p><strong>Kebijakan Privasi:</strong> Data pribadi Anda (Nama, Email, dan Nomor HP) digunakan semata-mata untuk proses autentikasi dan pencatatan hasil kuis. Data tersebut tidak akan disebarkan atau dibagikan kepada pihak mana pun di luar [BRAND NAME].</p>
+                    <p><strong>Batas Penggunaan Perangkat:</strong> Token hanya dapat digunakan pada maksimal dua perangkat. Mengganti browser atau aplikasi akan dihitung sebagai perangkat berbeda. Token yang diakses lebih dari dua perangkat akan terblokir otomatis, dan pihak NEEXA tidak bertanggung jawab.</p>
+                    <p><strong>Larangan dan Hak Cipta:</strong> Dilarang keras menyebarkan, menduplikasi, atau menggunakan materi soal NEEXA untuk tujuan komersial tanpa izin tertulis dari pihak NEEXA. Pelanggaran terhadap ketentuan ini dapat dikenakan sanksi sesuai Undang-Undang Hak Cipta yang berlaku di Indonesia.</p>
+                    <p><strong>Kebijakan Privasi:</strong> Data pribadi Anda (Nama, Email, dan Nomor HP) digunakan semata-mata untuk proses autentikasi dan pencatatan hasil kuis. Data tersebut tidak akan disebarkan atau dibagikan kepada pihak mana pun di luar NEEXA.</p>
                     <p style="font-weight: 600; margin-top: 15px;">Dengan menekan tombol checklist persetujuan dibawah ini, Anda menyatakan telah membaca, memahami, dan menyetujui seluruh ketentuan di atas.</p>
                 </div>
             </div>
@@ -509,8 +509,8 @@
             
             <div class="header-section layer3-header-content"> 
                 <div class="nexa-text-logo"> 
-                    <h2>[BRAND NAME]</h2>
-                    <p class="slogan">Slogan, Text Prototype</p>
+                    <h2>NEEXA</h2>
+                    <p class="slogan">Secure, your Future</p>
                 </div>
                 <h3 class="japanese-label">アクセス情報パネル</h3> 
                 <p class="english-label">Access Information Panel</p> 
@@ -741,9 +741,10 @@
             }
             
             const forceRenew = UI.forceRenew ? UI.forceRenew.checked : false; 
-            
+
             const payload = {
                 apiKey: API_KEY,
+                nama: USER_DATA.nama, // <--- TAMBAHKAN BARIS INI! (Wajib)
                 email: USER_DATA.email,
                 phone: USER_DATA.phone,
                 product: USER_DATA.product,
