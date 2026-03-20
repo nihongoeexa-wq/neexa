@@ -2725,14 +2725,41 @@ function renderCurrentView() {
                 console.log(`   ✅ STATUS: BENAR. Seharusnya muncul HIJAU.`);
             }
 
-            // ... (Kode Render Media & Teks sama seperti sebelumnya) ...
+
+            // --- LOGGING (MATA-MATA) ---
+            // Ini akan memberitahu kita kenapa warnanya tidak keluar
+            console.log(`Soal No ${index+1} (ID: ${q.id}):`);
+            console.log(`   - Jawaban User (Mentah): ${rawUser}`);
+            console.log(`   - Jawaban User (Final):  ${userAnswer}`);
+            console.log(`   - Kunci Jawaban:         ${correctAnswer}`);
+            
+            if (userAnswer === null) {
+                console.warn(`   ⚠️ PERINGATAN: User dianggap TIDAK MENJAWAB (Null). Warna Merah tidak akan muncul.`);
+            } else if (userAnswer !== correctAnswer) {
+                console.log(`   ✅ STATUS: SALAH. Seharusnya muncul MERAH.`);
+            } else {
+                console.log(`   ✅ STATUS: BENAR. Seharusnya muncul HIJAU.`);
+            }
+
+            // --- FIX KODE BARU: MULTI MEDIA UNTUK REVIEW ---
             let mediaHtml = '';
             if (q.mediaUrl) {
-                if (category === 'listening') { 
-                    mediaHtml = `<audio controls style="width: 100%; margin-top: 15px;"><source src="${q.mediaUrl}" type="audio/mpeg">Browser Anda tidak mendukung audio.</audio>`;
-                } else {
-                    mediaHtml = `<img src="${q.mediaUrl}" alt="Gambar Soal" style="max-width: 100%; height: auto; border-radius: 5px; margin-top: 15px;">`;
-                }
+                mediaHtml = '<div class="media-container" style="text-align: center; margin-top: 15px;">';
+                let mediaUrls = q.mediaUrl.split(/[,|]/); 
+                
+                mediaUrls.forEach(url => {
+                    let cleanUrl = url.trim();
+                    if (!cleanUrl) return;
+
+                    if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
+                        mediaHtml += `<audio controls style="width: 100%; max-width: 400px; margin-top: 10px;"><source src="${cleanUrl}" type="audio/mpeg">Browser Anda tidak mendukung.</audio><br>`;
+                    } else if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || cleanUrl.includes('drive.google.com/uc?')) {
+                        mediaHtml += `<img src="${cleanUrl}" alt="Media" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><br>`;
+                    } else {
+                        mediaHtml += `<a href="${cleanUrl}" target="_blank" style="color: #5b7efc;">Buka Media</a><br>`;
+                    }
+                });
+                mediaHtml += '</div>';
             }
 
             let passageHtml = '';
@@ -2767,8 +2794,9 @@ function renderCurrentView() {
                         isChecked = 'checked';
                     }
 
+                    // FIX TYPO: Tanda backtick di akhir tag img sudah diperbaiki menjadi 1 saja
                     const displayValue = optionText.startsWith('http') 
-                        ? `<img src="${optionText}" alt="Pilihan ${key}" style="max-height: 80px;">` 
+                        ? `<img src="${optionText}" alt="Pilihan ${key}" style="max-height: 200px; max-width: 100%; border-radius: 5px;">` 
                         : convertFuriganaToRuby(optionText);
 
                     optionsHtml += `
@@ -2792,9 +2820,8 @@ function renderCurrentView() {
                 `;
             }
 
-            // Masukkan pembahasanHtml ke bagian paling belakang kontainer soal
+            // PENGGABUNGAN AKHIR: Pastikan mediaHtml dan pembahasanHtml dimasukkan!
             allQuestionsHtml += `<div class="review-question-container">${passageHtml}${questionTextHtml}${mediaHtml}${optionsHtml}${pembahasanHtml}</div>`;
-        });
 
         UI.l6QuestionContent.innerHTML = allQuestionsHtml;
     }
