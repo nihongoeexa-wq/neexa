@@ -2383,7 +2383,7 @@ function renderCurrentView() {
 
             optionsArray.forEach((option) => { 
                 const displayValue = option.text.startsWith('http') 
-                    ? `<img src="${option.text}" alt="Pilihan ${option.key}" style="max-height: 80px;">` 
+                    ? `<img src="${option.text}" alt="Pilihan ${option.key}" style="max-height: 200px; max-width: 100%; border-radius: 5px;">` 
                     : convertFuriganaToRuby(option.text);
 
                 const isChecked = (qState.answer === option.key) ? 'checked' : '';
