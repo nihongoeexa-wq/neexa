@@ -2823,6 +2823,9 @@ function renderCurrentView() {
             // PENGGABUNGAN AKHIR: Pastikan mediaHtml dan pembahasanHtml dimasukkan!
             allQuestionsHtml += `<div class="review-question-container">${passageHtml}${questionTextHtml}${mediaHtml}${optionsHtml}${pembahasanHtml}</div>`;
 
+        }); // <--- PASTIKAN BARIS INI ADA! Ini adalah penutup loop questions.forEach
+
+        // Menampilkan semua soal yang sudah dirender ke layar
         UI.l6QuestionContent.innerHTML = allQuestionsHtml;
     }
 
