@@ -247,6 +247,18 @@
             border: 1px solid #e5e7eb; 
             line-height: 1.4;
             transition: all 0.2s;
+
+        /* --- FIX: STYLING UNTUK GAMBAR DI DALAM OPSI PILIHAN GANDA --- */
+        label img {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            display: block;
+            margin: 10px auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
         }
         label:hover { background: #f3f4f6; border-color: #5b7efc; }
         #questionList input[type="radio"]:checked + label { 
@@ -1709,6 +1721,23 @@
             align-items: center !important; /* Rata tengah vertikal */
         }
 
+        /* --- DESAIN KOTAK PEMBAHASAN JAWABAN --- */
+        .pembahasan-box {
+            background-color: #e8f0fe; 
+            border-left: 4px solid #5b7efc;
+            padding: 12px 15px; 
+            margin-top: 15px; 
+            border-radius: 4px;
+            font-size: 0.9em; 
+            color: #333;
+        }
+        .pembahasan-title { 
+            font-weight: 600; 
+            color: #1a73e8; 
+            margin-bottom: 5px; 
+            display: block; 
+        }
+
     </style>
     </head>
 
@@ -2292,29 +2321,43 @@
         });
     }
 
-
 function renderCurrentView() {
         try {
             const index = quizState.currentQuestionIndex;
             const q = quizState.questions[index];
             const qState = quizState.questionStates[q.id];
 
-            let mediaHtml = '';
-            // --- MODIFIKASI AUDIO (START) ---
+            let mediaHtml = ''; // Perhatikan penulisan variabel ini
+
+            // --- FIX: MULTI MEDIA (GAMBAR & AUDIO) ---
             if (q.mediaUrl) {
-                if (quizState.currentCategory === 'listening') {
-                    // Beri ID unik ke audio agar bisa dikontrol JS
-                    mediaHtml = `
-                        <div style="background:#fff3cd; padding:8px; border-radius:5px; margin-bottom:10px; font-size:0.85em; border:1px solid #ffeeba;">
-                            ⚠️ Audio max 2x putar. Tidak bisa di-download.
-                        </div>
-                        <audio id="audio_${q.id}" controls controlsList="nodownload" oncontextmenu="return false" style="width: 100%;">
-                            <source src="${q.mediaUrl}" type="audio/mpeg">
-                            Browser Anda tidak mendukung audio.
-                        </audio>`;
-                } else {
-                    mediaHtml = `<img src="${q.mediaUrl}" alt="Gambar Soal" style="max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 15px;">`;
-                }
+                // Gunakan mediaHtml yang sama dengan yang dideklarasikan di atas
+                mediaHtml = '<div class="media-container" style="text-align: center; margin-bottom: 15px;">';
+                let mediaUrls = q.mediaUrl.split(/[,|]/); 
+        
+                mediaUrls.forEach(url => {
+                    let cleanUrl = url.trim();
+                    if (!cleanUrl) return;
+
+                    if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
+                        // FIX: Tambahkan id="audio_${q.id}" agar bisa dikunci batas putarnya
+                        mediaHtml += `
+                            <audio id="audio_${q.id}" controls style="width: 100%; max-width: 400px; margin-top: 10px;">
+                                <source src="${cleanUrl}" type="audio/mpeg">
+                                Browser Anda tidak mendukung.
+                            </audio><br>
+                        `;
+                    } else if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || cleanUrl.includes('drive.google.com/uc?')) {
+                        mediaHtml += `
+                            <img src="${cleanUrl}" alt="Media" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><br>
+                        `;
+                    } else {
+                        mediaHtml += `<a href="${cleanUrl}" target="_blank" style="color: #5b7efc;">Buka Media</a><br>`;
+                    }
+                });
+
+                mediaHtml += '</div>';
+                // (BARIS ERROR questionHTML += mediaHTML; SUDAH DIHAPUS)             
             }
             // --- MODIFIKASI AUDIO (END) ---
 
@@ -2358,16 +2401,16 @@ function renderCurrentView() {
             });
             optionsHtml += '</div>';
             
+            // Di sini mediaHtml yang benar (beserta audio/gambar) digabungkan
             UI.l6QuestionContent.innerHTML = questionTextHtml + mediaHtml + optionsHtml;
             
-            // --- LOGIKA LISTENER AUDIO (BARU) ---
+            // --- LOGIKA LISTENER AUDIO (SUDAH BENAR) ---
+            // Karena kita sudah menambahkan ID di elemen <audio> di atas, sekarang logika ini akan bekerja!
             if (q.mediaUrl && quizState.currentCategory === 'listening') {
                 const audioEl = document.getElementById(`audio_${q.id}`);
                 if (audioEl) {
-                    // Inisialisasi counter jika belum ada
                     if (!audioPlayCounts[q.id]) audioPlayCounts[q.id] = 0;
 
-                    // Event saat user klik play
                     audioEl.addEventListener('play', () => {
                         if (audioPlayCounts[q.id] >= 2) {
                             audioEl.pause();
@@ -2738,7 +2781,19 @@ function renderCurrentView() {
             });
             optionsHtml += '</div>';
 
-            allQuestionsHtml += `<div class="review-question-container">${passageHtml}${questionTextHtml}${mediaHtml}${optionsHtml}</div>`;
+            // --- TAMBAHAN DARI KENZO: KOTAK PEMBAHASAN JAWABAN ---
+            let pembahasanHtml = '';
+            if (q.pembahasan && q.pembahasan.trim() !== "") {
+                pembahasanHtml = `
+                    <div class="pembahasan-box">
+                        <span class="pembahasan-title"><i class="fas fa-lightbulb"></i> Pembahasan:</span>
+                        ${q.pembahasan}
+                    </div>
+                `;
+            }
+
+            // Masukkan pembahasanHtml ke bagian paling belakang kontainer soal
+            allQuestionsHtml += `<div class="review-question-container">${passageHtml}${questionTextHtml}${mediaHtml}${optionsHtml}${pembahasanHtml}</div>`;
         });
 
         UI.l6QuestionContent.innerHTML = allQuestionsHtml;
