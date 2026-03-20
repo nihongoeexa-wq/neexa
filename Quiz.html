@@ -1669,6 +1669,46 @@
             }
         }
 
+        /* ======================================================= */
+        /* FIX FINAL: FURIGANA PADA OPSI JAWABAN (REVIEW & SOAL) */
+        /* ======================================================= */
+
+        /* 1. Atur Jarak Baris pada Teks Opsi */
+        .option-label span, 
+        .option-label-review span {
+            display: inline-block !important; /* Penting agar line-height bekerja */
+            line-height: 1.8 !important;      /* Jarak baris diperbesar agar muat tumpukan */
+            padding-top: 5px;                 /* Ruang ekstra di atas */
+            padding-bottom: 5px;              /* Ruang ekstra di bawah */
+            vertical-align: middle;
+        }
+
+        /* 2. Reset Posisi Ruby di dalam Opsi */
+        .option-label ruby, 
+        .option-label-review ruby {
+            display: inline-flex !important;
+            flex-direction: column-reverse !important;
+            vertical-align: bottom !important;
+            margin: 0 1px !important;
+        }
+
+        /* 3. Atur Posisi Furigana (RT) agar tidak turun */
+        .option-label rt, 
+        .option-label-review rt {
+            display: block !important;
+            line-height: 1 !important;
+            font-size: 0.6em !important;
+            text-align: center;
+            margin-bottom: 0px !important; /* Jangan minus, biar tidak nabrak */
+            transform: translateY(0px) !important; /* Reset posisi */
+            color: #555;
+        }
+
+        /* 4. Pastikan Flexbox Opsi Rata Tengah */
+        .option-label, .option-label-review {
+            align-items: center !important; /* Rata tengah vertikal */
+        }
+
     </style>
     </head>
 
@@ -1677,8 +1717,8 @@
         
         <div style="text-align: center; margin-bottom: 20px;">
             <div class="nexa-text-logo">
-                <h2 class="logo-text">[BRAND NAME]</h2>
-                <p class="slogan">Slogan, Text Prototype</p>
+                <h2 class="logo-text">NEEXA</h2>
+                <p class="slogan">Secure, your Future</p>
             </div>
         </div>
 
@@ -1704,7 +1744,7 @@
           <div class="intro-card">
             <div class="l5-header-box">
                 <h3 class="l5-welcome-logo">✦ WELCOME ✦</h3>
-                <p>Brandname Prototype Brandname Prototype</p>
+                <p>Nihongo Electronic Exam Auditorium</p>
             </div>
 
             <h2 class="l5-hello">Hello <span id="welcomeUserName">[Nama Pengguna]</span></h2>
@@ -1830,6 +1870,10 @@
         timeLimit: 0,             
         timerInterval: null       
     };
+
+    // --- TAMBAHKAN INI (UNTUK AUDIO LIMIT) ---
+    let audioPlayCounts = {}; 
+    // ----------------------------------------
 
     // Laporan Skor & Review
     let finalScoreReport = {
@@ -2191,9 +2235,15 @@
         UI.l6ProgressBar.style.width = `${progressPercent}%`;
     }
 
+    // REVISI: TIMER GLOBAL (TIDAK RESET SAAT GANTI KATEGORI)
     function startQuizTimerLimit() {
-        if (quizState.timerInterval) clearInterval(quizState.timerInterval);
+        // Cek apakah timer sudah berjalan? Jika YA, jangan reset!
+        if (quizState.timerInterval) {
+            console.log("Timer global sudah berjalan, melanjutkan hitungan...");
+            return;
+        }
 
+        // Ambil waktu dari setting soal (biasanya dari kategori pertama)
         let timeInSeconds = quizState.timeLimit * 60;
 
         if (timeInSeconds <= 0) {
@@ -2205,17 +2255,22 @@
             const minutes = Math.floor(timeInSeconds / 60);
             let seconds = timeInSeconds % 60;
             seconds = seconds < 10 ? '0' + seconds : seconds;
+            
             UI.l6Timer.textContent = `Waktu Tersisa: ${minutes}:${seconds}`;
 
             if (timeInSeconds <= 0) {
                 clearInterval(quizState.timerInterval);
                 UI.l6Timer.textContent = "WAKTU HABIS!";
-                submitCategory(); // Force Submit
+                
+                // Paksa Submit saat waktu habis
+                alert("Waktu Habis! Jawaban akan dikirim otomatis.");
+                submitCategory(); 
             }
             timeInSeconds--;
         }
 
-        updateTimerDisplay(); 
+        updateTimerDisplay(); // Jalankan sekali di awal
+        // Simpan interval ID ke state agar bisa dicek nanti
         quizState.timerInterval = setInterval(updateTimerDisplay, 1000);
     }
 
@@ -2238,20 +2293,30 @@
     }
 
 
-    function renderCurrentView() {
+function renderCurrentView() {
         try {
             const index = quizState.currentQuestionIndex;
             const q = quizState.questions[index];
             const qState = quizState.questionStates[q.id];
 
             let mediaHtml = '';
+            // --- MODIFIKASI AUDIO (START) ---
             if (q.mediaUrl) {
                 if (quizState.currentCategory === 'listening') {
-                    mediaHtml = `<audio controls style="width: 100%;"><source src="${q.mediaUrl}" type="audio/mpeg">Browser Anda tidak mendukung audio.</audio>`;
+                    // Beri ID unik ke audio agar bisa dikontrol JS
+                    mediaHtml = `
+                        <div style="background:#fff3cd; padding:8px; border-radius:5px; margin-bottom:10px; font-size:0.85em; border:1px solid #ffeeba;">
+                            ⚠️ Audio max 2x putar. Tidak bisa di-download.
+                        </div>
+                        <audio id="audio_${q.id}" controls controlsList="nodownload" oncontextmenu="return false" style="width: 100%;">
+                            <source src="${q.mediaUrl}" type="audio/mpeg">
+                            Browser Anda tidak mendukung audio.
+                        </audio>`;
                 } else {
                     mediaHtml = `<img src="${q.mediaUrl}" alt="Gambar Soal" style="max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 15px;">`;
                 }
             }
+            // --- MODIFIKASI AUDIO (END) ---
 
             let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
             let processedText = convertFuriganaToRuby(q.questionText);
@@ -2267,7 +2332,6 @@
                 questionTextHtml = `<div class="passage-box">${passageContent}</div>` + questionTextHtml;
             }
 
-            // --- REVISI FINAL: MENGGUNAKAN ONCHANGE ---
             let optionsHtml = '<div class="options-container">';
             
             const optionsArray = OPTIONS_KEYS
@@ -2279,11 +2343,8 @@
                     ? `<img src="${option.text}" alt="Pilihan ${option.key}" style="max-height: 80px;">` 
                     : convertFuriganaToRuby(option.text);
 
-                // Cek status checked dari memori
                 const isChecked = (qState.answer === option.key) ? 'checked' : '';
 
-                // PERUBAHAN: Ganti onclick="..." menjadi onchange="..."
-                // Ini JAUH lebih stabil daripada onclick
                 optionsHtml += `
                     <label class="option-label">
                         <input type="radio" 
@@ -2299,6 +2360,27 @@
             
             UI.l6QuestionContent.innerHTML = questionTextHtml + mediaHtml + optionsHtml;
             
+            // --- LOGIKA LISTENER AUDIO (BARU) ---
+            if (q.mediaUrl && quizState.currentCategory === 'listening') {
+                const audioEl = document.getElementById(`audio_${q.id}`);
+                if (audioEl) {
+                    // Inisialisasi counter jika belum ada
+                    if (!audioPlayCounts[q.id]) audioPlayCounts[q.id] = 0;
+
+                    // Event saat user klik play
+                    audioEl.addEventListener('play', () => {
+                        if (audioPlayCounts[q.id] >= 2) {
+                            audioEl.pause();
+                            audioEl.currentTime = 0;
+                            alert("Batas pemutaran audio (2x) telah habis!");
+                        } else {
+                            audioPlayCounts[q.id]++;
+                            console.log(`Audio ${q.id} diputar ke: ${audioPlayCounts[q.id]}`);
+                        }
+                    });
+                }
+            }
+            // ------------------------------------
             
             UI.l6BtnBack.disabled = (index === 0); 
 
