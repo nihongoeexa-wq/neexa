@@ -2340,9 +2340,12 @@ function renderCurrentView() {
                     if (!cleanUrl) return;
 
                     if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
-                        // FIX: Tambahkan id="audio_${q.id}" agar bisa dikunci batas putarnya
+                        // FIX: Tambahan Teks Peringatan untuk Mode Exam
                         mediaHtml += `
-                            <audio id="audio_${q.id}" controls style="width: 100%; max-width: 400px; margin-top: 10px;">
+                            <div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; padding: 10px 15px; margin: 10px auto 5px auto; max-width: 400px; font-size: 0.85em; font-weight: 600; text-align: left; box-sizing: border-box;">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>Peringatan: Audio hanya dapat diputar maksimal 2 kali!
+                            </div>
+                            <audio id="audio_${q.id}" controls style="width: 100%; max-width: 400px; margin-top: 5px;">
                                 <source src="${cleanUrl}" type="audio/mpeg">
                                 Browser Anda tidak mendukung.
                             </audio><br>
@@ -2358,6 +2361,7 @@ function renderCurrentView() {
 
                 mediaHtml += '</div>';
                 // (BARIS ERROR questionHTML += mediaHTML; SUDAH DIHAPUS)             
+            }            
             }
             // --- MODIFIKASI AUDIO (END) ---
 
