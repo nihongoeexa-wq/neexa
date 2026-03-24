@@ -2404,26 +2404,17 @@ function renderCurrentView() {
             // Di sini mediaHtml yang benar (beserta audio/gambar) digabungkan
             UI.l6QuestionContent.innerHTML = questionTextHtml + mediaHtml + optionsHtml;
             
-            // --- LOGIKA LISTENER AUDIO (SUDAH BENAR) ---
-            // Karena kita sudah menambahkan ID di elemen <audio> di atas, sekarang logika ini akan bekerja!
+            // --- LOGIKA LISTENER AUDIO (MODE QUIZ: BEBAS PUTAR) ---
             if (q.mediaUrl && quizState.currentCategory === 'listening') {
                 const audioEl = document.getElementById(`audio_${q.id}`);
                 if (audioEl) {
-                    if (!audioPlayCounts[q.id]) audioPlayCounts[q.id] = 0;
-
                     audioEl.addEventListener('play', () => {
-                        if (audioPlayCounts[q.id] >= 2) {
-                            audioEl.pause();
-                            audioEl.currentTime = 0;
-                            alert("Batas pemutaran audio (2x) telah habis!");
-                        } else {
-                            audioPlayCounts[q.id]++;
-                            console.log(`Audio ${q.id} diputar ke: ${audioPlayCounts[q.id]}`);
-                        }
+                        console.log(`Audio ${q.id} diputar (Mode Latihan).`);
                     });
                 }
             }
             // ------------------------------------
+
             
             UI.l6BtnBack.disabled = (index === 0); 
 
