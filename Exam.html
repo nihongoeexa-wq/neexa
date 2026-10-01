@@ -18,16 +18,8 @@
         }
 
         body { 
-            font-family: 'Poppins', sans-serif;
-            margin: 0; padding: 0; 
-            background: linear-gradient(135deg, #a7b7eb 0%, #7d8be0 100%) !important;
-            min-height: 100vh; 
-            display: flex; 
-            justify-content: center;
-            align-items: center;
-            overflow-y: auto; 
-            position: relative;
-        }
+        font-family: 'Poppins', sans-serif;
+        margin: 0; padding: 0;
         
         .container { 
             max-width: 850px; 
@@ -2290,10 +2282,20 @@
             if (timeInSeconds <= 0) {
                 clearInterval(quizState.timerInterval);
                 UI.l6Timer.textContent = "WAKTU HABIS!";
-                
-                // Paksa Submit saat waktu habis
-                alert("Waktu Habis! Jawaban akan dikirim otomatis.");
-                submitCategory(); 
+
+                // Mencegah Force Close: Modifikasi UI tanpa alert()
+                UI.l6QuestionContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #e74c3c;">⏰ WAKTU HABIS!</h2>
+                        <p>Sistem sedang mengirim lembar jawaban Anda...</p>
+                    </div>`;
+
+                if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden');
+
+                // Tunggu 1,5 detik agar peserta sadar, lalu tembak ke server
+                setTimeout(() => {
+                    submitCategory(); 
+                }, 1500);
             }
             timeInSeconds--;
         }
@@ -2321,124 +2323,134 @@
         });
     }
 
+// FUNGSI BARU: Parser Warna, Tebal, dan Miring
+function parseAllStyles(text) {
+    if (!text || typeof text !== 'string') return text;
+    return text
+        .replace(/\[color:(.*?)\](.*?)\[\/color\]/gi, '<span style="color:$1; font-weight:bold;">$2</span>')
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.*?)\*/g, '<i>$1</i>');
+}
+
 function renderCurrentView() {
-        try {
-            const index = quizState.currentQuestionIndex;
-            const q = quizState.questions[index];
-            const qState = quizState.questionStates[q.id];
+    try {
+        const index = quizState.currentQuestionIndex;
+        const q = quizState.questions[index];
+        const qState = quizState.questionStates[q.id];
 
-            let mediaHtml = ''; // Perhatikan penulisan variabel ini
+        let mediaHtml = ''; 
 
-            // --- FIX: MULTI MEDIA (GAMBAR & AUDIO) ---
-            if (q.mediaUrl) {
-                // Gunakan mediaHtml yang sama dengan yang dideklarasikan di atas
-                mediaHtml = '<div class="media-container" style="text-align: center; margin-bottom: 15px;">';
-                let mediaUrls = q.mediaUrl.split(/[,|]/); 
-        
-                mediaUrls.forEach(url => {
-                    let cleanUrl = url.trim();
-                    if (!cleanUrl) return;
+        if (q.mediaUrl) {
+            mediaHtml = '<div class="media-container" style="text-align: center; margin-bottom: 15px;">';
+            let mediaUrls = q.mediaUrl.split(/[,|]/); 
 
-                    if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
-                        // FIX: Tambahan Teks Peringatan untuk Mode Exam
+            mediaUrls.forEach(url => {
+                let cleanUrl = url.trim();
+                if (!cleanUrl) return;
+
+                if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
+                    // FIX TAMPILAN AUDIO EXAM (Menggunakan Saklar Database)
+                    const isExam = (USER_DATA.stats && USER_DATA.stats.tipeAkses === 'UJIAN');
+                    if (isExam) {
                         mediaHtml += `
-                            <div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; padding: 10px 15px; margin: 10px auto 5px auto; max-width: 400px; font-size: 0.85em; font-weight: 600; text-align: left; box-sizing: border-box;">
-                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>Peringatan: Audio hanya dapat diputar maksimal 2 kali!
+                            <div id="audioAlert_${q.id}" class="hidden" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 5px; padding: 10px; margin: 5px auto; max-width: 400px; font-size: 0.85em; font-weight: 600; text-align: left;">
+                                <i class="fas fa-ban" style="margin-right: 8px;"></i>Batas putar habis!
                             </div>
-                            <audio id="audio_${q.id}" controls style="width: 100%; max-width: 400px; margin-top: 5px;">
-                                <source src="${cleanUrl}" type="audio/mpeg">
-                                Browser Anda tidak mendukung.
-                            </audio><br>
+                            <div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; padding: 10px; margin: 10px auto 5px auto; max-width: 400px; font-size: 0.85em; font-weight: 600; text-align: left;">
+                                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>Audio hanya dapat diputar 2 kali.
+                            </div>
                         `;
-                    } else if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || cleanUrl.includes('drive.google.com/uc?')) {
-                        mediaHtml += `
-                            <img src="${cleanUrl}" alt="Media" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><br>
-                        `;
+                    }
+                    mediaHtml += `
+                        <audio id="audio_${q.id}" controls style="width: 100%; max-width: 400px; margin-top: 5px;">
+                            <source src="${cleanUrl}" type="audio/mpeg">
+                        </audio><br>
+                    `;
+                } else if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || cleanUrl.includes('drive.google.com/uc?')) {
+                    mediaHtml += `<img src="${cleanUrl}" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><br>`;
+                }
+            });
+            mediaHtml += '</div>';
+        }
+
+        let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
+        // FIX: Panggil Parser Warna dan Furigana sekaligus
+        let rawText = parseAllStyles(q.questionText);
+        let processedText = convertFuriganaToRuby(rawText);
+
+        if (processedText.includes(':')) {
+            const parts = processedText.split(':', 2);
+            processedText = `${parts[0]}:<br><span class="japanese-text-line">${parts[1]}</span>`;
+        }
+
+        let questionTextHtml = `<h3 class="question-title">${questionNumberStyled} <div class="question-text-wrapper">${processedText}</div></h3>`;
+
+        if (q.passageText && q.passageText.trim() !== "") {
+            const rawPassage = parseAllStyles(q.passageText);
+            const passageContent = convertFuriganaToRuby(rawPassage); 
+            questionTextHtml = `<div class="passage-box">${passageContent}</div>` + questionTextHtml;
+        }
+
+        let optionsHtml = '<div class="options-container">';
+        const optionsArray = OPTIONS_KEYS.map(key => ({ key: key, text: q.options[key] })).filter(opt => opt.text && opt.text.trim() !== "");
+
+        optionsArray.forEach((option) => { 
+            const rawOpt = parseAllStyles(option.text);
+            const displayValue = rawOpt.startsWith('http') 
+                ? `<img src="${rawOpt}" style="max-height: 200px; max-width: 100%; border-radius: 5px;">` 
+                : convertFuriganaToRuby(rawOpt);
+
+            const isChecked = (qState.answer === option.key) ? 'checked' : '';
+
+            // FIX: Menghapus onchange bawaan HTML (menghindari double-trigger)
+            // FIX: Menggunakan atribut data-qid untuk menyimpan ID lengkap yang aman
+            optionsHtml += `
+                <label class="option-label">
+                    <input type="radio" 
+                           name="q_answerGroup" 
+                           value="${option.key}" 
+                           data-qid="${q.id}"
+                           ${isChecked}>
+                    <span>${option.key}. ${displayValue}</span>
+                </label>
+            `;
+        });
+        optionsHtml += '</div>';
+
+        UI.l6QuestionContent.innerHTML = questionTextHtml + mediaHtml + optionsHtml;
+
+        // FIX ALERT AUDIO EXAM (Menggunakan Custom UI Pop-up)
+        if (q.mediaUrl && quizState.currentCategory === 'listening') {
+            const audioEl = document.getElementById(`audio_${q.id}`);
+            const alertEl = document.getElementById(`audioAlert_${q.id}`);
+                
+            // MENGUBAH PENENTU UJIAN BUKAN DARI JUDUL TAB, TAPI DARI DATABASE
+            const isExam = (USER_DATA.stats && USER_DATA.stats.tipeAkses === 'UJIAN');
+
+            if (audioEl && isExam) {
+                if (!audioPlayCounts[q.id]) audioPlayCounts[q.id] = 0;
+                audioEl.addEventListener('play', () => {
+                    if (audioPlayCounts[q.id] >= 2) {
+                        audioEl.pause();
+                        audioEl.currentTime = 0;
+                        if(alertEl) alertEl.classList.remove('hidden'); 
                     } else {
-                        mediaHtml += `<a href="${cleanUrl}" target="_blank" style="color: #5b7efc;">Buka Media</a><br>`;
+                        audioPlayCounts[q.id]++;
                     }
                 });
-
-                mediaHtml += '</div>';
-                // (BARIS ERROR questionHTML += mediaHTML; SUDAH DIHAPUS)             
             }
-            // --- MODIFIKASI AUDIO (END) ---
-
-            let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
-            let processedText = convertFuriganaToRuby(q.questionText);
-
-            if (processedText.includes(':')) {
-                const parts = processedText.split(':', 2);
-                processedText = `${parts[0]}:<br><span class="japanese-text-line">${parts[1]}</span>`;
-            }
-
-            let questionTextHtml = `<h3 class="question-title">${questionNumberStyled} <div class="question-text-wrapper">${processedText}</div></h3>`;
-            if (q.passageText && q.passageText.trim() !== "") {
-                const passageContent = convertFuriganaToRuby(q.passageText); 
-                questionTextHtml = `<div class="passage-box">${passageContent}</div>` + questionTextHtml;
-            }
-
-            let optionsHtml = '<div class="options-container">';
-            
-            const optionsArray = OPTIONS_KEYS
-                .map(key => ({ key: key, text: q.options[key] }))
-                .filter(opt => opt.text && opt.text.trim() !== "");
-
-            optionsArray.forEach((option) => { 
-                const displayValue = option.text.startsWith('http') 
-                    ? `<img src="${option.text}" alt="Pilihan ${option.key}" style="max-height: 200px; max-width: 100%; border-radius: 5px;">` 
-                    : convertFuriganaToRuby(option.text);
-
-                const isChecked = (qState.answer === option.key) ? 'checked' : '';
-
-                optionsHtml += `
-                    <label class="option-label">
-                        <input type="radio" 
-                               name="q_${q.id}" 
-                               value="${option.key}" 
-                               ${isChecked}
-                               onchange="saveAnswer('${q.id}', '${option.key}')">
-                        <span>${option.key}. ${displayValue}</span>
-                    </label>
-                `;
-            });
-            optionsHtml += '</div>';
-            
-            // Di sini mediaHtml yang benar (beserta audio/gambar) digabungkan
-            UI.l6QuestionContent.innerHTML = questionTextHtml + mediaHtml + optionsHtml;
-            
-            // --- LOGIKA LISTENER AUDIO (SUDAH BENAR) ---
-            // Karena kita sudah menambahkan ID di elemen <audio> di atas, sekarang logika ini akan bekerja!
-            if (q.mediaUrl && quizState.currentCategory === 'listening') {
-                const audioEl = document.getElementById(`audio_${q.id}`);
-                if (audioEl) {
-                    if (!audioPlayCounts[q.id]) audioPlayCounts[q.id] = 0;
-
-                    audioEl.addEventListener('play', () => {
-                        if (audioPlayCounts[q.id] >= 2) {
-                            audioEl.pause();
-                            audioEl.currentTime = 0;
-                            alert("Batas pemutaran audio (2x) telah habis!");
-                        } else {
-                            audioPlayCounts[q.id]++;
-                            console.log(`Audio ${q.id} diputar ke: ${audioPlayCounts[q.id]}`);
-                        }
-                    });
-                }
-            }
-            // ------------------------------------
-            
-            UI.l6BtnBack.disabled = (index === 0); 
-
-            const isLastQuestion = (index === quizState.questions.length - 1);
-            UI.l6BtnNext.classList.toggle('hidden', isLastQuestion); 
-            UI.l6BtnSubmitCategory.classList.toggle('hidden', !isLastQuestion); 
-
-        } catch (err) {
-            console.error("Error di renderCurrentView:", err);
-            UI.l6QuestionContent.innerHTML = `<p class="error">Gagal merender soal. Coba lagi.</p>`;
         }
+
+        UI.l6BtnBack.disabled = (index === 0); 
+        const isLastQuestion = (index === quizState.questions.length - 1);
+        UI.l6BtnNext.classList.toggle('hidden', isLastQuestion); 
+        UI.l6BtnSubmitCategory.classList.toggle('hidden', !isLastQuestion); 
+
+    } catch (err) {
+        console.error("Error di renderCurrentView:", err);
+        UI.l6QuestionContent.innerHTML = `<p class="error">Gagal merender soal. Coba lagi.</p>`;
     }
+}
 
     function navigateToQuestion(newIndex) {
         const oldIndex = quizState.currentQuestionIndex;
@@ -2671,165 +2683,131 @@ function renderCurrentView() {
     /**
      * FUNGSI DIAGNOSTIK: Masuk Mode Review dengan LOGGING LENGKAP
      */
-    function showReview(category) {
-        console.log("--- MEMULAI MODE REVIEW DIAGNOSTIK ---"); // LOG
-        
-        const reviewDetails = reviewDataStore[category];
-        const questions = allQuestionsStore[category];
 
-        if (!reviewDetails || !questions) {
-            alert('Data review tidak ditemukan.');
-            return;
+    function showReview(category) {
+    console.log("--- MEMULAI MODE REVIEW ---"); 
+
+    const reviewDetails = reviewDataStore[category];
+    const questions = allQuestionsStore[category];
+
+    if (!reviewDetails || !questions) {
+        alert('Data review tidak ditemukan.');
+        return;
+    }
+
+    UI.layerReviewPage.classList.add('hidden');
+    UI.accessContent.classList.remove('hidden');
+    const layoutContainer = document.querySelector('.quiz-layout-container');
+    if (layoutContainer) layoutContainer.classList.add('in-review-mode');
+
+    UI.l6Header.classList.remove('hidden');
+    UI.l6Main.classList.remove('hidden');
+    UI.l6Footer.classList.remove('hidden');
+    UI.l6ProductName.textContent = `${currentProduct} - REVIEW MODE`;
+    UI.l6UserInfo.textContent = `${USER_DATA.nama || 'Peserta'} - ${category}`;
+
+    if(UI.l6ProgressBar) UI.l6ProgressBar.parentElement.classList.add('hidden'); 
+    if(UI.l6NavPanel) UI.l6NavPanel.classList.add('hidden'); 
+    if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden'); 
+
+    // FIX: HAPUS TOMBOL DOWNLOAD PDF
+    UI.l6Footer.innerHTML = `
+        <div style="display: flex; justify-content: center; width: 100%;">
+            <button class="score-reload-btn" onclick="returnToScorePage()" style="margin-top: 0; background: #7f8c8d;">Kembali ke Laporan Skor</button>
+        </div>
+    `;
+
+    let allQuestionsHtml = '';
+
+    questions.forEach((q, index) => {
+        const detail = reviewDetails[q.id];
+        if (!detail) return;
+
+        const rawUser = detail.answer;
+        const rawCorrect = detail.correct;
+        const userAnswer = rawUser ? String(rawUser).trim().toUpperCase() : null; 
+        const correctAnswer = String(rawCorrect).trim().toUpperCase();
+
+        // FITUR BARU: LENCANA "TIDAK DIJAWAB / DILEWATI"
+        let badgeHtml = '';
+        if (!userAnswer) {
+            badgeHtml = `<div style="background-color: #f39c12; color: #fff; padding: 6px 12px; border-radius: 6px; display: inline-block; font-size: 0.85em; font-weight: 600; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-exclamation-circle"></i> Soal ini tidak dijawab / dilewati</div>`;
         }
 
-        // Setup UI (Sama seperti sebelumnya)
-        UI.layerReviewPage.classList.add('hidden');
-        UI.accessContent.classList.remove('hidden');
-        const layoutContainer = document.querySelector('.quiz-layout-container');
-        if (layoutContainer) layoutContainer.classList.add('in-review-mode');
-        
-        UI.l6Header.classList.remove('hidden');
-        UI.l6Main.classList.remove('hidden');
-        UI.l6Footer.classList.remove('hidden');
-        UI.l6ProductName.textContent = `${currentProduct} - REVIEW MODE`;
-        UI.l6UserInfo.textContent = `${USER_DATA.nama || 'Peserta'} - ${category}`;
-        
-        if(UI.l6ProgressBar) UI.l6ProgressBar.parentElement.classList.add('hidden'); 
-        if(UI.l6NavPanel) UI.l6NavPanel.classList.add('hidden'); 
-        if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden'); 
-        UI.l6Footer.innerHTML = `<button class="score-reload-btn" onclick="returnToScorePage()">Kembali ke Halaman Skor</button>`;
-
-        let allQuestionsHtml = '';
-        
-        questions.forEach((q, index) => {
-            const detail = reviewDetails[q.id];
-            if (!detail) return;
-
-            // --- DATA MENTAH ---
-            const rawUser = detail.answer;
-            const rawCorrect = detail.correct;
-
-            // --- NORMALISASI ---
-            const userAnswer = rawUser ? String(rawUser).trim().toUpperCase() : null; 
-            const correctAnswer = String(rawCorrect).trim().toUpperCase();
-
-            // --- LOGGING (MATA-MATA) ---
-            // Ini akan memberitahu kita kenapa warnanya tidak keluar
-            console.log(`Soal No ${index+1} (ID: ${q.id}):`);
-            console.log(`   - Jawaban User (Mentah): ${rawUser}`);
-            console.log(`   - Jawaban User (Final):  ${userAnswer}`);
-            console.log(`   - Kunci Jawaban:         ${correctAnswer}`);
-            
-            if (userAnswer === null) {
-                console.warn(`   ⚠️ PERINGATAN: User dianggap TIDAK MENJAWAB (Null). Warna Merah tidak akan muncul.`);
-            } else if (userAnswer !== correctAnswer) {
-                console.log(`   ✅ STATUS: SALAH. Seharusnya muncul MERAH.`);
-            } else {
-                console.log(`   ✅ STATUS: BENAR. Seharusnya muncul HIJAU.`);
-            }
-
-
-            // --- LOGGING (MATA-MATA) ---
-            // Ini akan memberitahu kita kenapa warnanya tidak keluar
-            console.log(`Soal No ${index+1} (ID: ${q.id}):`);
-            console.log(`   - Jawaban User (Mentah): ${rawUser}`);
-            console.log(`   - Jawaban User (Final):  ${userAnswer}`);
-            console.log(`   - Kunci Jawaban:         ${correctAnswer}`);
-            
-            if (userAnswer === null) {
-                console.warn(`   ⚠️ PERINGATAN: User dianggap TIDAK MENJAWAB (Null). Warna Merah tidak akan muncul.`);
-            } else if (userAnswer !== correctAnswer) {
-                console.log(`   ✅ STATUS: SALAH. Seharusnya muncul MERAH.`);
-            } else {
-                console.log(`   ✅ STATUS: BENAR. Seharusnya muncul HIJAU.`);
-            }
-
-            // --- FIX KODE BARU: MULTI MEDIA UNTUK REVIEW ---
-            let mediaHtml = '';
-            if (q.mediaUrl) {
-                mediaHtml = '<div class="media-container" style="text-align: center; margin-top: 15px;">';
-                let mediaUrls = q.mediaUrl.split(/[,|]/); 
-                
-                mediaUrls.forEach(url => {
-                    let cleanUrl = url.trim();
-                    if (!cleanUrl) return;
-
-                    if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
-                        mediaHtml += `<audio controls style="width: 100%; max-width: 400px; margin-top: 10px;"><source src="${cleanUrl}" type="audio/mpeg">Browser Anda tidak mendukung.</audio><br>`;
-                    } else if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || cleanUrl.includes('drive.google.com/uc?')) {
-                        mediaHtml += `<img src="${cleanUrl}" alt="Media" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"><br>`;
-                    } else {
-                        mediaHtml += `<a href="${cleanUrl}" target="_blank" style="color: #5b7efc;">Buka Media</a><br>`;
-                    }
-                });
-                mediaHtml += '</div>';
-            }
-
-            let passageHtml = '';
-            if (q.passageText && q.passageText.trim() !== "") {
-                passageHtml = `<div class="passage-box">${convertFuriganaToRuby(q.passageText)}</div>`;
-            }
-            
-            let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
-            let processedText = convertFuriganaToRuby(q.questionText);
-            if (processedText.includes(':')) {
-                const parts = processedText.split(':', 2);
-                processedText = `${parts[0]}:<br><span class="japanese-text-line">${parts[1]}</span>`;
-            }
-            let questionTextHtml = `<h3 class="question-title">${questionNumberStyled} <div class="question-text-wrapper">${processedText}</div></h3>`;
-
-            // --- RENDER OPSI ---
-            let optionsHtml = '<div class="options-container">';
-            OPTIONS_KEYS.forEach(key => {
-                const optionText = q.options[key];
-                const currentKey = key.toUpperCase(); 
-
-                if (optionText && optionText.trim() !== "") {
-                    let labelClass = 'option-label-review';
-                    let isChecked = '';
-
-                    // LOGIKA PEWARNAAN
-                    if (currentKey === correctAnswer) {
-                        labelClass += ' review-correct'; // Kunci (Hijau)
-                        if (userAnswer === currentKey) isChecked = 'checked';
-                    } else if (currentKey === userAnswer) {
-                        labelClass += ' review-incorrect'; // User Salah (Merah)
-                        isChecked = 'checked';
-                    }
-
-                    // FIX TYPO: Tanda backtick di akhir tag img sudah diperbaiki menjadi 1 saja
-                    const displayValue = optionText.startsWith('http') 
-                        ? `<img src="${optionText}" alt="Pilihan ${key}" style="max-height: 200px; max-width: 100%; border-radius: 5px;">` 
-                        : convertFuriganaToRuby(optionText);
-
-                    optionsHtml += `
-                        <label class="${labelClass}">
-                            <input type="radio" value="${key}" ${isChecked} disabled>
-                            <span>${key}. ${displayValue}</span>
-                        </label>
-                    `;
+        let mediaHtml = '';
+        if (q.mediaUrl) {
+            mediaHtml = '<div class="media-container" style="text-align: center; margin-top: 15px;">';
+            let mediaUrls = q.mediaUrl.split(/[,|]/); 
+            mediaUrls.forEach(url => {
+                let cleanUrl = url.trim();
+                if (!cleanUrl) return;
+                if (cleanUrl.match(/\.(mp3|wav|ogg|m4a)$/i) || cleanUrl.includes('drive.google.com/file/d/')) {
+                    mediaHtml += `<audio controls style="width: 100%; max-width: 400px; margin-top: 10px;"><source src="${cleanUrl}" type="audio/mpeg"></audio><br>`;
+                } else if (cleanUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) || cleanUrl.includes('drive.google.com/uc?')) {
+                    mediaHtml += `<img src="${cleanUrl}" style="max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 10px;"><br>`;
                 }
             });
-            optionsHtml += '</div>';
+            mediaHtml += '</div>';
+        }
 
-            // --- TAMBAHAN DARI KENZO: KOTAK PEMBAHASAN JAWABAN ---
-            let pembahasanHtml = '';
-            if (q.pembahasan && q.pembahasan.trim() !== "") {
-                pembahasanHtml = `
-                    <div class="pembahasan-box">
-                        <span class="pembahasan-title"><i class="fas fa-lightbulb"></i> Pembahasan:</span>
-                        ${q.pembahasan}
-                    </div>
+        // Gunakan Parser Warna untuk teks soal (Grand Fix)
+        let rawQuestionText = parseAllStyles(q.questionText);
+        let processedText = convertFuriganaToRuby(rawQuestionText);
+        if (processedText.includes(':')) {
+            const parts = processedText.split(':', 2);
+            processedText = `${parts[0]}:<br><span class="japanese-text-line">${parts[1]}</span>`;
+        }
+        let questionNumberStyled = `<span class="q-number-display">${index + 1}</span>`;
+        let questionTextHtml = `<h3 class="question-title">${questionNumberStyled} <div class="question-text-wrapper">${processedText}</div></h3>`;
+
+        let passageHtml = '';
+        if (q.passageText && q.passageText.trim() !== "") {
+            const rawPassage = parseAllStyles(q.passageText);
+            passageHtml = `<div class="passage-box">${convertFuriganaToRuby(rawPassage)}</div>`;
+        }
+
+        let optionsHtml = '<div class="options-container">';
+        OPTIONS_KEYS.forEach(key => {
+            const optionText = q.options[key];
+            const currentKey = key.toUpperCase(); 
+
+            if (optionText && optionText.trim() !== "") {
+                let labelClass = 'option-label-review';
+                let isChecked = '';
+
+                if (currentKey === correctAnswer) {
+                    labelClass += ' review-correct'; 
+                    if (userAnswer === currentKey) isChecked = 'checked';
+                } else if (currentKey === userAnswer) {
+                    labelClass += ' review-incorrect'; 
+                    isChecked = 'checked';
+                }
+
+                // Gunakan Parser Warna untuk Opsi
+                const rawOpt = parseAllStyles(optionText);
+                const displayValue = rawOpt.startsWith('http') 
+                    ? `<img src="${rawOpt}" style="max-height: 200px; border-radius: 5px;">` 
+                    : convertFuriganaToRuby(rawOpt);
+
+                optionsHtml += `
+                    <label class="${labelClass}">
+                        <input type="radio" value="${key}" ${isChecked} disabled>
+                        <span>${key}. ${displayValue}</span>
+                    </label>
                 `;
             }
+        });
+        optionsHtml += '</div>';
 
-            // PENGGABUNGAN AKHIR: Pastikan mediaHtml dan pembahasanHtml dimasukkan!
-            allQuestionsHtml += `<div class="review-question-container">${passageHtml}${questionTextHtml}${mediaHtml}${optionsHtml}${pembahasanHtml}</div>`;
+        let pembahasanHtml = '';
+        if (q.pembahasan && q.pembahasan.trim() !== "") {
+            pembahasanHtml = `<div class="pembahasan-box"><span class="pembahasan-title"><i class="fas fa-lightbulb"></i> Pembahasan:</span>${q.pembahasan}</div>`;
+        }
 
-        }); // <--- PASTIKAN BARIS INI ADA! Ini adalah penutup loop questions.forEach
+        allQuestionsHtml += `<div class="review-question-container">${badgeHtml}${passageHtml}${questionTextHtml}${mediaHtml}${optionsHtml}${pembahasanHtml}</div>`;
+    });
 
-        // Menampilkan semua soal yang sudah dirender ke layar
-        UI.l6QuestionContent.innerHTML = allQuestionsHtml;
+    UI.l6QuestionContent.innerHTML = allQuestionsHtml;
     }
 
     /**
@@ -2878,8 +2856,9 @@ function renderCurrentView() {
     });
 
     UI.l6QuestionPanel?.addEventListener('change', (event) => {
-        if (event.target.type === 'radio' && event.target.name.startsWith('q_')) {
-            const qId = event.target.name.split('_')[1]; 
+        // FIX: Menggunakan data-qid yang aman, tidak memotong string dengan underscore
+        if (event.target.type === 'radio' && event.target.hasAttribute('data-qid')) {
+            const qId = event.target.getAttribute('data-qid'); 
             const answerValue = event.target.value;     
             saveAnswer(qId, answerValue);
         }
@@ -2910,57 +2889,71 @@ function renderCurrentView() {
     // ====================================================================
 
     document.addEventListener('DOMContentLoaded', () => {
-        generateDeviceID();
+    generateDeviceID();
 
+    // --- 1. FITUR KEAMANAN ANTI-DOWNLOAD & ANTI-INSPECT ---
+    // Matikan klik kanan
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    // Matikan tombol shortcut (Ctrl+P, Ctrl+S, Ctrl+C, Ctrl+U, F12)
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'c' || e.key === 'u' || e.key === 'P' || e.key === 'S' || e.key === 'C' || e.key === 'U')) {
+            e.preventDefault();
+        }
+        if (e.key === 'F12') {
+            e.preventDefault();
+        }
+    });
+
+    // --- 2. SINKRONISASI TOKEN DARI INDEX.HTML BARU ---
+    // Mengambil data dari sessionStorage, bukan lagi dari URL
+    const tokenFromStorage = sessionStorage.getItem('NEXA_ACTIVE_TOKEN');
+    const productFromStorage = sessionStorage.getItem('NEXA_ACTIVE_PRODUCT');
+
+    if (productFromStorage) {
+        currentProduct = productFromStorage;
+        if(UI.productNameDisplay) UI.productNameDisplay.textContent = currentProduct;
+    } else {
         const savedProduct = localStorage.getItem('NEXA_USER_DATA') ? JSON.parse(localStorage.getItem('NEXA_USER_DATA')).product : 'Produk Anda';
         if(UI.productNameDisplay) UI.productNameDisplay.textContent = savedProduct;
+    }
 
-        // Set Listener untuk Validasi Token
-        if(UI.btnValidateToken) {
-            UI.btnValidateToken.addEventListener('click', () => { 
-                 validateToken(UI.inputToken.value.trim());
-            });
-        }
+    if(UI.btnValidateToken) {
+        UI.btnValidateToken.addEventListener('click', () => { 
+             validateToken(UI.inputToken.value.trim());
+        });
+    }
 
-        // Cek Token di URL
-        const tokenFromURL = urlParams.get('token');
-        
-        // FIX: Pastikan Layer Kuis (6) dan Layer Review (7) SEMBUNYI dulu
-        UI.accessContent.classList.add('hidden');
-        if(UI.layerReviewPage) UI.layerReviewPage.classList.add('hidden');
+    UI.accessContent.classList.add('hidden');
+    if(UI.layerReviewPage) UI.layerReviewPage.classList.add('hidden');
 
-        if (tokenFromURL) {
-            // Jika ada token di URL (dari Index.html), otomatis login
-            UI.inputToken.value = tokenFromURL;
-            UI.tokenInputArea.classList.add('hidden'); // Sembunyikan input
-            validateToken(tokenFromURL);
-        } else {
-            // Jika Buka Langsung (Manual), TAMPILKAN INPUT
-            console.log("Mode Manual: Menampilkan Input Token");
-            UI.layer4Subheader.classList.remove('hidden'); // Pastikan header layer 4 muncul
-            UI.tokenInputArea.classList.remove('hidden');  // Pastikan input muncul
-            setMessage(UI.msg4, '', false); 
-        }
-    });
+    // Proses Auto-Login dari Storage
+    if (tokenFromStorage) {
+        console.log("Token ditemukan di brankas rahasia, memproses auto-login...");
+        UI.inputToken.value = tokenFromStorage;
+        UI.tokenInputArea.classList.add('hidden');
+        validateToken(tokenFromStorage);
+    } else {
+        console.log("Mode Manual: Menampilkan Input Token");
+        UI.layer4Subheader.classList.remove('hidden'); 
+        UI.tokenInputArea.classList.remove('hidden');  
+        setMessage(UI.msg4, '', false); 
+    }
 
-    // --- FIX: TOMBOL SEMBUNYIKAN PERINGATAN ---
-    // Kita taruh di dalam DOMContentLoaded agar pasti elemennya sudah ada
-    document.addEventListener('DOMContentLoaded', () => {
-        const btnToggle = document.getElementById('btnToggleWarning');
-        const warningBox = document.getElementById('warningContainer');
+    // Script tombol sembunyikan peringatan
+    const btnToggle = document.getElementById('btnToggleWarning');
+    const warningBox = document.getElementById('warningContainer');
+    if (btnToggle && warningBox) {
+        const newBtn = btnToggle.cloneNode(true);
+        btnToggle.parentNode.replaceChild(newBtn, btnToggle);
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault(); 
+            warningBox.style.display = 'none'; 
+        });
+    }
+});
 
-        if (btnToggle && warningBox) {
-            // Hapus listener lama (jika ada) dengan mengkloning
-            const newBtn = btnToggle.cloneNode(true);
-            btnToggle.parentNode.replaceChild(newBtn, btnToggle);
 
-            // Pasang listener baru yang bersih
-            newBtn.addEventListener('click', function(e) {
-                e.preventDefault(); // Mencegah perilaku default
-                warningBox.style.display = 'none'; // Sembunyikan kotak
-            });
-        }
-    });
 </script>
 </body>
 </html>
+
