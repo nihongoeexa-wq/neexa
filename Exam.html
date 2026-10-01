@@ -2575,9 +2575,10 @@ function renderCurrentView() {
         });
     }
 
-    /**
+/**
      * FUNGSI SAPU JAGAT: Dieksekusi hanya saat waktu habis.
-     * Mengirim jawaban saat ini, dan lembar KOSONG untuk sisa kategori.
+     * Mengirim jawaban saat ini, mengambil teks soal yang terlewat (untuk review), 
+     * dan mengirim lembar KOSONG untuk sisa kategori.
      */
     async function forceSubmitAllRemaining() {
         console.log("🔥 AUTO-SUBMIT SEMUA KATEGORI DIMULAI 🔥");
@@ -2598,6 +2599,26 @@ function renderCurrentView() {
                     <p>Menyimpan hasil <b>${cat.toUpperCase()}</b>...</p>
                     <div style="margin-top:15px; width: 30px; height: 30px; border: 3px solid #ccc; border-top: 3px solid #e74c3c; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
                 </div>`;
+
+            // ===============================================================
+            // FIX UTAMA: AMBIL TEKS SOAL DARI SERVER JIKA BELUM PERNAH DIBUKA
+            // ===============================================================
+            if (!allQuestionsStore[cat]) {
+                console.log(`Mengambil data soal ${cat} untuk persiapan halaman Review...`);
+                try {
+                    const qResp = await apiCall('getQuizQuestions', { 
+                        apiKey: API_KEY, 
+                        category: cat, 
+                        product: currentProduct 
+                    });
+                    if (qResp.success && qResp.data && qResp.data.questions) {
+                        allQuestionsStore[cat] = qResp.data.questions;
+                    }
+                } catch (e) {
+                    console.error(`Gagal mengambil soal ${cat}`, e);
+                }
+            }
+            // ===============================================================
 
             const payload = {
                 apiKey: API_KEY,
@@ -3022,3 +3043,4 @@ function renderCurrentView() {
 </script>
 </body>
 </html>
+
