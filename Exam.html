@@ -1889,7 +1889,8 @@
         questions: [],            
         questionStates: {},    
         timeLimit: 0,             
-        timerInterval: null       
+        timerInterval: null,
+        isTimeUp: false           // <-- TAMBAHAN BARU
     };
 
     // --- TAMBAHKAN INI (UNTUK AUDIO LIMIT) ---
@@ -2256,15 +2257,14 @@
         UI.l6ProgressBar.style.width = `${progressPercent}%`;
     }
 
-    // REVISI: TIMER GLOBAL (TIDAK RESET SAAT GANTI KATEGORI)
+    // REVISI: TIMER GLOBAL & FIX ZOMBIE TIMER
     function startQuizTimerLimit() {
-        // Cek apakah timer sudah berjalan? Jika YA, jangan reset!
+        if (quizState.isTimeUp) return;
         if (quizState.timerInterval) {
             console.log("Timer global sudah berjalan, melanjutkan hitungan...");
             return;
         }
 
-        // Ambil waktu dari setting soal (biasanya dari kategori pertama)
         let timeInSeconds = quizState.timeLimit * 60;
 
         if (timeInSeconds <= 0) {
@@ -2273,6 +2273,8 @@
         }
 
         function updateTimerDisplay() {
+            if (quizState.isTimeUp) return;
+
             const minutes = Math.floor(timeInSeconds / 60);
             let seconds = timeInSeconds % 60;
             seconds = seconds < 10 ? '0' + seconds : seconds;
@@ -2281,27 +2283,39 @@
 
             if (timeInSeconds <= 0) {
                 clearInterval(quizState.timerInterval);
+                quizState.timerInterval = null; 
+                quizState.isTimeUp = true; // Tandai waktu mati total
+
                 UI.l6Timer.textContent = "WAKTU HABIS!";
 
-                // Mencegah Force Close: Modifikasi UI tanpa alert()
+                // Kunci panel kiri (nomor soal) agar tidak bisa diklik!
+                if(UI.l6NavPanel) {
+                    UI.l6NavPanel.style.pointerEvents = 'none';
+                    UI.l6NavPanel.style.opacity = '0.5';
+                }
+
                 UI.l6QuestionContent.innerHTML = `
                     <div style="text-align: center; padding: 40px;">
                         <h2 style="color: #e74c3c;">⏰ WAKTU HABIS!</h2>
-                        <p>Sistem sedang mengirim lembar jawaban Anda...</p>
-                    </div>`;
+                        <p>Sistem sedang merekap semua lembar jawaban Anda...</p>
+                        <div style="margin-top:15px; width: 30px; height: 30px; border: 3px solid #ccc; border-top: 3px solid #e74c3c; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                    </div>
+                `;
 
                 if(UI.l6QuestionNavButtons) UI.l6QuestionNavButtons.classList.add('hidden');
+                if(UI.l6Footer) UI.l6Footer.classList.add('hidden');
 
-                // Tunggu 1,5 detik agar peserta sadar, lalu tembak ke server
+                // Eksekusi force submit berantai
                 setTimeout(() => {
-                    submitCategory(); 
+                    forceSubmitAllRemaining();
                 }, 1500);
+                
+                return;
             }
             timeInSeconds--;
         }
 
-        updateTimerDisplay(); // Jalankan sekali di awal
-        // Simpan interval ID ke state agar bisa dicek nanti
+        updateTimerDisplay(); 
         quizState.timerInterval = setInterval(updateTimerDisplay, 1000);
     }
 
@@ -2559,6 +2573,58 @@ function renderCurrentView() {
                 if(UI.l6Footer) UI.l6Footer.classList.remove('hidden'); 
             }
         });
+    }
+
+    /**
+     * FUNGSI SAPU JAGAT: Dieksekusi hanya saat waktu habis.
+     * Mengirim jawaban saat ini, dan lembar KOSONG untuk sisa kategori.
+     */
+    async function forceSubmitAllRemaining() {
+        console.log("🔥 AUTO-SUBMIT SEMUA KATEGORI DIMULAI 🔥");
+        const allCategories = ['knowledge', 'reading', 'listening'];
+        const startIndex = allCategories.indexOf(quizState.currentCategory);
+
+        // Kunci jawaban yang sudah diisi di kategori saat ini
+        const currentAnswersCopy = JSON.parse(JSON.stringify(quizState.questionStates));
+
+        for (let i = startIndex; i < allCategories.length; i++) {
+            const cat = allCategories[i];
+            const isCurrent = (i === startIndex);
+            const payloadAnswers = isCurrent ? currentAnswersCopy : {}; // Kosongkan untuk kategori yang belum disentuh
+
+            UI.l6QuestionContent.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <h2 style="color: #e74c3c;">⏰ WAKTU HABIS!</h2>
+                    <p>Menyimpan hasil <b>${cat.toUpperCase()}</b>...</p>
+                    <div style="margin-top:15px; width: 30px; height: 30px; border: 3px solid #ccc; border-top: 3px solid #e74c3c; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                </div>`;
+
+            const payload = {
+                apiKey: API_KEY,
+                email: USER_DATA.email || 'guest',
+                phone: USER_DATA.phone || '000',
+                product: currentProduct,
+                category: cat,
+                answers: payloadAnswers
+            };
+
+            try {
+                // Tunggu respons server per kategori agar Google Sheets tidak meledak/overload
+                const response = await apiCall('submitCategoryAnswers', payload);
+                if (response.success && response.data) {
+                    const cleanCat = cat.toLowerCase().trim();
+                    finalScoreReport[cleanCat] = response.data;
+                    if (response.data.details) {
+                        reviewDataStore[cleanCat] = response.data.details;
+                    }
+                }
+            } catch (err) {
+                console.error("Gagal auto-submit " + cat, err);
+            }
+        }
+
+        // Setelah semua kategori tersubmit, tampilkan skor akhir
+        renderFinalScorePage();
     }
 
     /**
@@ -2956,4 +3022,3 @@ function renderCurrentView() {
 </script>
 </body>
 </html>
-
